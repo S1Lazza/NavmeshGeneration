@@ -6,6 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "SolidHeightfield.h"
 #include "OpenHeightfield.h"
+#include "Contour.h"
 #include "../Utility/UtilityGeneral.h"
 #include "../Utility/UtilityDebug.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -77,6 +78,7 @@ void ANavMeshGenerator::GenerateNavmesh()
 
 	ASolidHeightfield* SolidHF = GetWorld()->SpawnActor<ASolidHeightfield>(GetActorLocation(), FRotator(0.f, 0.f, 0.f), SpawnInfo);
 	AOpenHeightfield* OpenHF = GetWorld()->SpawnActor<AOpenHeightfield>(GetActorLocation(), FRotator(0.f, 0.f, 0.f), SpawnInfo);
+	AContour* Contour = GetWorld()->SpawnActor<AContour>(GetActorLocation(), FRotator(0.f, 0.f, 0.f), SpawnInfo);
 
 	SolidHF->DefineFieldsBounds(GetActorLocation(), BoxBounds->GetScaledBoxExtent());
 
@@ -86,6 +88,7 @@ void ANavMeshGenerator::GenerateNavmesh()
 	}
 
 	CreateOpenHeightfield(OpenHF, SolidHF, true);
+	CreateContour(Contour, OpenHF);
 }
 
 void ANavMeshGenerator::CreateSolidHeightfield(ASolidHeightfield* SolidHeightfield, const UStaticMeshComponent* Mesh)
@@ -116,13 +119,20 @@ void ANavMeshGenerator::CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield,
 	OpenHeightfield->Init(SolidHeightfield);
 	OpenHeightfield->FindOpenSpanData(SolidHeightfield);
 	/*OpenHeightfield->DrawDebugSpanData();*/
-	OpenHeightfield->GenerateNeightborLinks();
-	OpenHeightfield->GenerateDistanceField();
-	/*OpenHeightfield->DrawDistanceFieldDebugData(false, true);*/
-	OpenHeightfield->GenerateRegions();
-	OpenHeightfield->HandleSmallRegions();
-	OpenHeightfield->CleanNullRegionBorders();
-	OpenHeightfield->DrawDebugRegions(false, true);
+
+	if (PerformFullGeneration)
+	{
+		OpenHeightfield->GenerateNeightborLinks();
+		OpenHeightfield->GenerateDistanceField();
+		/*OpenHeightfield->DrawDistanceFieldDebugData(false, true);*/
+		OpenHeightfield->GenerateRegions();
+		OpenHeightfield->HandleSmallRegions();
+		OpenHeightfield->DrawDebugRegions(false, true);
+	}
+}
+
+void ANavMeshGenerator::CreateContour(AContour* Contour, const AOpenHeightfield* OpenHeightfield)
+{
 }
 
 void ANavMeshGenerator::InitializeComponents()

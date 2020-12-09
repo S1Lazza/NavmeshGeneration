@@ -115,3 +115,29 @@ int UOpenSpan::GetNullEdgeDirection()
     }
     return -1;
 }
+
+int UOpenSpan::IncreaseNeighborDirection(int Direction, int Increment)
+{
+    int IncrementDiff;
+
+    Direction += Increment;
+
+    if (Direction > 3)
+    {
+        IncrementDiff = Direction % 4;
+        Direction = IncrementDiff;
+    }
+
+    return Direction;
+}
+
+int UOpenSpan::DecreaseNeighborDirection(int Direction, int Decrement)
+{
+    Direction -= Decrement;
+    if (Direction < 0)
+    {
+        Direction += 4;
+    }
+
+    return Direction;
+}

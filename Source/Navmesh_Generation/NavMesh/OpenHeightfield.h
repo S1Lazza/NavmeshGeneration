@@ -76,18 +76,6 @@ public:
 	//Traverse the edge of a region and add all the neighbor connection found to the region connection array
 	void FindRegionConnections(UOpenSpan* Span, int NeighborDirection, TArray<int>& RegionConnection);
 
-	void CleanNullRegionBorders();
-
-	void PartialFloodRegion(UOpenSpan* Span, int BorderDirection, int NewRegionID);
-
-	void ResetSpanFlags();
-
-	bool ProcessNullRegion(UOpenSpan* StartSpan, int StartDirection);
-
-	bool ProcessOuterCorner(UOpenSpan* Span, int BorderDirection);
-
-	int SelectedRegionID(UOpenSpan* Span, int BorderDirection, int CornerDirection);
-
 	//Draw the open span data
 	void DrawDebugSpanData();
 
@@ -116,16 +104,18 @@ private:
 	//Applies extra algorithms to regions to help prevent poorly formed regions from forming
 	bool UseConservativeExpansion = true;
 
-	bool UseOnlyNullSpans = true;
-
 	//Total number of regions
 	int RegionCount = 0;
 
+	//Minimum span size of the island region to remove
 	int MinUnconnectedRegionSize = 10;
 
-	int MinMergeRegionSize = 20;
+	//Minimum span size of the region to merge
+	int MinMergeRegionSize = 10;
 
 	//Container of all the openspans contained in the heightfield
 	UPROPERTY()
 	TMap<int, UOpenSpan*> Spans;
+
+	friend class AContour;
 };

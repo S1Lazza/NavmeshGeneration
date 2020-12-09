@@ -38,6 +38,11 @@ public:
 	//Return the direction of the first neighbor in the null region
 	int GetNullEdgeDirection();
 
+	static int IncreaseNeighborDirection(int Direction, int Increment);
+
+	//It is assumed that a value greater than 4 would not be passed as decrement
+	static int DecreaseNeighborDirection(int Direction, int Decrement);
+
 	//Width of the span
 	int Width = 0;
 
@@ -75,30 +80,3 @@ public:
 	UPROPERTY()
 	UOpenSpan* NeighborConnection3;
 };
-
-static int IncreaseNeighborDirection(int Direction, int Increment)
-{
-	int IncrementDiff;
-
-	Direction += Increment;
-
-	if (Direction > 3)
-	{
-		IncrementDiff = Direction % 4;
-		Direction = IncrementDiff;
-	}
-
-	return Direction;
-}
-
-//It is assumed that a value greater than 4 would not be passed as decrement
-static int DecreaseNeighborDirection(int Direction, int Decrement)
-{
-	Direction -= Decrement;
-	if (Direction < 0)
-	{
-		Direction += 4;
-	}
-
-	return Direction;
-}
