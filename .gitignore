@@ -65,3 +65,7 @@ Binaries/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+#Specific files
+p4ignore.txt
+SetP4Ignore.bat
