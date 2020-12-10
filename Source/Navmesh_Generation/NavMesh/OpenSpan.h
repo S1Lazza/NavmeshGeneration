@@ -38,6 +38,12 @@ public:
 	//Return the direction of the first neighbor in the null region
 	int GetNullEdgeDirection();
 
+	void ResetNeighborRegionFlag();
+
+	bool CheckNeighborRegionFlag();
+
+	bool GetNeighborRegionFlag(const int Direction);
+
 	static int IncreaseNeighborDirection(int Direction, int Increment);
 
 	//It is assumed that a value greater than 4 would not be passed as decrement
@@ -79,4 +85,6 @@ public:
 	UOpenSpan* NeighborConnection2;
 	UPROPERTY()
 	UOpenSpan* NeighborConnection3;
+
+	TArray<bool> NeighborInDiffRegion = { false, false, false, false };
 };

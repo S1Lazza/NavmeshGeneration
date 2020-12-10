@@ -80,7 +80,7 @@ int UOpenSpan::GetRegionEdgeDirection()
     {
         UOpenSpan* NeighborSpan = GetAxisNeighbor(NeighborDir);
 
-        if (!NeighborSpan || NeighborSpan->RegionID != RegionID)
+        if (NeighborSpan || NeighborSpan->RegionID != RegionID)
         {
             return NeighborDir;
         }
@@ -114,6 +114,32 @@ int UOpenSpan::GetNullEdgeDirection()
         }
     }
     return -1;
+}
+
+void UOpenSpan::ResetNeighborRegionFlag()
+{
+    for (bool Flag : NeighborInDiffRegion)
+    {
+        Flag = false;
+    }
+}
+
+bool UOpenSpan::CheckNeighborRegionFlag()
+{
+    for (bool Flag : NeighborInDiffRegion)
+    {
+        if (Flag)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool UOpenSpan::GetNeighborRegionFlag(const int Direction)
+{
+    return NeighborInDiffRegion[Direction];
 }
 
 int UOpenSpan::IncreaseNeighborDirection(int Direction, int Increment)

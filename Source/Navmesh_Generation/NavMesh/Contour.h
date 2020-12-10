@@ -6,6 +6,18 @@
 #include "GameFramework/Actor.h"
 #include "Contour.generated.h"
 
+class AOpenHeightfield;
+class UOpenSpan;
+
+USTRUCT()
+struct FContourVertexData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FVector Coordinate = FVector(0.f, 0.f, 0.f);
+	int RegionID = 0;
+};
+
 UCLASS()
 class NAVMESH_GENERATION_API AContour : public AActor
 {
@@ -17,11 +29,31 @@ public:
 
 	void Tick(float DeltaTime) override;
 
+	void Init(const AOpenHeightfield* OpenHeightfield);
+
+	void GenerateContour(const AOpenHeightfield* OpenHeightfield);
+
+	//TODO: Double check the way in which the region spans are checked, there's code you can reuse
+	void FindNeighborRegionConnection(const AOpenHeightfield* OpenHeightfield, int& NumberOfContourDiscarded);
+
+	void BuildRawContours(UOpenSpan* Span, const int SpanWidth, const int SpanDepth, const int NeighborDir, TArray<FVector>& Vertices);
+
+	//Get the highest grid cell value of the corner spans
+	int GetCornerHeightIndex(UOpenSpan* Span, const int NeighborDir);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 private:
+	FVector BoundMin;
+
+	FVector BoundMax;
+	
+	float CellSize;
+	
+	float CellHeight;
+
 	//Region ID to which the countour refer to
 	int RegionID;
 
@@ -32,8 +64,8 @@ private:
 	int SimplifiedVerticesCount;
 
 	//Vertices representing the detailed contour
-	TArray<FVector> RawVertices;
+	TArray<FContourVertexData> RawVertices;
 
 	//Vertices representing the simplified contour
-	TArray<FVector> SimplifiedVertices;
+	TArray<FContourVertexData> SimplifiedVertices;
 };
