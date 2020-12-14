@@ -16,6 +16,7 @@ struct FContourVertexData
 
 	FVector Coordinate = FVector(0.f, 0.f, 0.f);
 	int RegionID = 0;
+	int SpanID = 0;
 };
 
 UCLASS()
@@ -31,15 +32,17 @@ public:
 
 	void Init(const AOpenHeightfield* OpenHeightfield);
 
-	void GenerateContour(const AOpenHeightfield* OpenHeightfield);
+	void GenerateContour(AOpenHeightfield* OpenHeightfield);
 
 	//TODO: Double check the way in which the region spans are checked, there's code you can reuse
 	void FindNeighborRegionConnection(const AOpenHeightfield* OpenHeightfield, int& NumberOfContourDiscarded);
 
-	void BuildRawContours(UOpenSpan* Span, const int SpanWidth, const int SpanDepth, const int NeighborDir, TArray<FVector>& Vertices);
+	void BuildRawContours(UOpenSpan* Span, const int StartDir, TArray<FContourVertexData>& Vertices);
 
 	//Get the highest grid cell value of the corner spans
 	int GetCornerHeightIndex(UOpenSpan* Span, const int NeighborDir);
+
+	void DrawRegionRawContour(TArray<FContourVertexData>& Vertices, int CurrentRegionID);
 
 protected:
 	// Called when the game starts or when spawned
@@ -53,6 +56,8 @@ private:
 	float CellSize;
 	
 	float CellHeight;
+
+	int RegionCount;
 
 	//Region ID to which the countour refer to
 	int RegionID;

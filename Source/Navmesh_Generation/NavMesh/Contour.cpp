@@ -34,12 +34,13 @@ void AContour::Init(const AOpenHeightfield* OpenHeightfield)
 	BoundMax = OpenHeightfield->BoundMax;
 	CellSize = OpenHeightfield->CellSize;
 	CellHeight = OpenHeightfield->CellHeight;
+	RegionCount = OpenHeightfield->RegionCount;
 }
 
-void AContour::GenerateContour(const AOpenHeightfield* OpenHeightfield)
+void AContour::GenerateContour(AOpenHeightfield* OpenHeightfield)
 {
 	int DiscardedCountour = 0;
-	TArray<FVector> TempRawVertices;
+	TArray<FContourVertexData> TempRawVertices;
 	TArray<FVector> TempSimplifiedVertices;
 
 	FindNeighborRegionConnection(OpenHeightfield, DiscardedCountour);
@@ -48,33 +49,44 @@ void AContour::GenerateContour(const AOpenHeightfield* OpenHeightfield)
 	{
 		UOpenSpan* CurrentSpan = Span.Value;
 
+		int GridIndex = Span.Key;
+
 		do
 		{
 			//If span belongs to the null region or has no neighbor connected to another one, skip it 
-			if (CurrentSpan->RegionID == NULL_REGION || !CurrentSpan->CheckNeighborRegionFlag())
+			if (CurrentSpan->RegionID == NULL_REGION || !CurrentSpan->CheckNeighborRegionFlag() || CurrentSpan->RegionID != 3)
 			{
 				CurrentSpan = CurrentSpan->nextSpan;
 				continue;
 			}
 
+			/* 
+			* Draw the region border spans of each region
 			float Offset = 2.f;
-
 			FVector SpanMinCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width + Offset, BoundMin.Y + CellSize * CurrentSpan->Depth + Offset, BoundMin.Z + CellSize * CurrentSpan->Min);
 			FVector SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellSize * (CurrentSpan->Min));
 			UUtilityDebug::DrawMinMaxBox(GetWorld(), SpanMinCoord, SpanMaxCoord, FColor::Red, 20.0f, 0.5f);
+			*/
 
 			//TODO: Consider array initialization here, instead of resetting them
-			RawVertices.Empty();
-			SimplifiedVertices.Empty();
+			/*TempRawVertices.Empty();
+			TempSimplifiedVertices.Empty();*/
 
-			int NeighborDir = CurrentSpan->GetRegionEdgeDirection();
+			int NeighborDir = 0;
 
-			BuildRawContours(CurrentSpan, CurrentSpan->Width, CurrentSpan->Depth, NeighborDir, TempRawVertices);
+			while (!CurrentSpan->GetNeighborRegionFlag(NeighborDir))
+			{
+				NeighborDir++;
+			}
+
+			BuildRawContours(CurrentSpan, NeighborDir, TempRawVertices);
 
 			CurrentSpan = CurrentSpan->nextSpan;
 		} 
 		while (CurrentSpan);
 	}
+
+	DrawRegionRawContour(TempRawVertices, 3);
 }
 
 void AContour::FindNeighborRegionConnection(const AOpenHeightfield* OpenHeightfield, int& NumberOfContourDiscarded)
@@ -128,22 +140,77 @@ void AContour::FindNeighborRegionConnection(const AOpenHeightfield* OpenHeightfi
 	}
 }
 
-void AContour::BuildRawContours(UOpenSpan* Span, const int SpanWidth, const int SpanDepth, const int NeighborDir, TArray<FVector>& Vertices)
+void AContour::BuildRawContours(UOpenSpan* Span, const int StartDir, TArray<FContourVertexData>& Vertices)
 {
 	UOpenSpan* CurrentSpan = Span;
-	int Direction = NeighborDir;
-	int StartWidth = SpanWidth;
-	int StartDepth = SpanDepth;
+	int Direction = StartDir;
+	int StartWidth = CurrentSpan->Width;
+	int StartDepth = CurrentSpan->Depth;
 
 	//Similar logic to the one applied in the FindRegionConnection method
 	//Check the OpenHeightfield class for more details
 	int LoopCount = 0;
 
-	while (LoopCount < /*UINT16_MAX*/1)
+	FVector SpanMinCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width, BoundMin.Y + CellSize * CurrentSpan->Depth, BoundMin.Z + CellSize * (CurrentSpan->Min));
+	FVector SpanMaxCoord = FVector(SpanMinCoord.X + CellSize, SpanMinCoord.Y + CellSize, BoundMin.Z + CellSize * (CurrentSpan->Min));
+	UUtilityDebug::DrawMinMaxBox(GetWorld(), SpanMinCoord, SpanMaxCoord, FColor::Red, 20.0f, 0.5f);
+
+	while (LoopCount < UINT16_MAX)
 	{
 		if (CurrentSpan->GetNeighborRegionFlag(Direction))
 		{			
-			int test = 0;
+			float PosX = BoundMin.X + CellSize * StartWidth;
+			float PosY = BoundMin.Y + (CellSize * StartDepth + CellSize);
+			float PosZ = BoundMin.Z + CellSize * GetCornerHeightIndex(CurrentSpan, Direction);
+
+			/*FVector DebugTest(PosX, PosY, PosZ);
+			DrawDebugSphere(GetWorld(), DebugTest, 1.0f, 10, FColor::Green, false, 20.0f, 0, 10.0f);*/
+
+			switch (Direction)
+			{
+			case 0: PosY -= CellSize; break;
+			case 1: PosX += CellSize; PosY -= CellSize; break;
+			case 2: PosX += CellSize; break;
+			}
+
+			/*DebugTest = FVector(PosX, PosY, PosZ);
+			DrawDebugSphere(GetWorld(), DebugTest, 1.0f, 10, FColor::Blue, false, 20.0f, 0, 10.0f);*/
+
+			int RegionIDDirection = NULL_REGION;
+			UOpenSpan* NeighborSpan = CurrentSpan->GetAxisNeighbor(Direction);
+			if (NeighborSpan)
+			{
+				RegionIDDirection = NeighborSpan->RegionID;
+			}
+
+			FContourVertexData Vertex;
+			Vertex.Coordinate = FVector(PosX, PosY, PosZ);
+			Vertex.RegionID = RegionIDDirection;
+			Vertex.SpanID = CurrentSpan->RegionID;
+
+			Vertices.Add(Vertex);
+
+			CurrentSpan->NeighborInDiffRegion[Direction] = false;
+			Direction = UOpenSpan::IncreaseNeighborDirection(Direction, 1);
+		}
+		else
+		{
+			CurrentSpan = CurrentSpan->GetAxisNeighbor(Direction);
+
+			switch (Direction)
+			{
+			case 0: StartWidth--; break;
+			case 1: StartDepth--; break;
+			case 2: StartWidth++; break;
+			case 3: StartDepth++; break;
+			}
+
+			Direction = UOpenSpan::IncreaseNeighborDirection(Direction, 3);
+		}
+
+		if (CurrentSpan == Span && Direction == StartDir)
+		{
+			break;
 		}
 
 		LoopCount++;
@@ -187,5 +254,20 @@ int AContour::GetCornerHeightIndex(UOpenSpan* Span, const int NeighborDir)
 	}
 
 	return MaxFloor;
+}
+
+void AContour::DrawRegionRawContour(TArray<FContourVertexData>& Vertices, int CurrentRegionID)
+{
+	TArray<FVector> TempContainer;
+
+	for (auto Vertex : Vertices)
+	{
+		if (Vertex.SpanID == CurrentRegionID)
+		{
+			TempContainer.Add(Vertex.Coordinate);
+		}
+	}
+
+	UUtilityDebug::DrawPolygon(GetWorld(), TempContainer, FColor::Blue, 20.0f, 2.0f);
 }
 

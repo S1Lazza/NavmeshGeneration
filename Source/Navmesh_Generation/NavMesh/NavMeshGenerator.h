@@ -36,7 +36,7 @@ public:
 	//Create an open heightfield based on the data retrieved from the solid one and return it
 	void CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield, const ASolidHeightfield* SolidHeightfield, bool PerformFullGeneration);
 
-	void CreateContour(AContour* Contour, const AOpenHeightfield* OpenHeightfield);
+	void CreateContour(AContour* Contour, AOpenHeightfield* OpenHeightfield);
 
 protected:
 	// Called when the game starts or when spawned

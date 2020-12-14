@@ -127,11 +127,11 @@ void ANavMeshGenerator::CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield,
 		/*OpenHeightfield->DrawDistanceFieldDebugData(false, true);*/
 		OpenHeightfield->GenerateRegions();
 		OpenHeightfield->HandleSmallRegions();
-		/*OpenHeightfield->DrawDebugRegions(false, true);*/
+		OpenHeightfield->DrawDebugRegions(false, true);
 	}
 }
 
-void ANavMeshGenerator::CreateContour(AContour* Contour, const AOpenHeightfield* OpenHeightfield)
+void ANavMeshGenerator::CreateContour(AContour* Contour, AOpenHeightfield* OpenHeightfield)
 {
 	Contour->Init(OpenHeightfield);
 	Contour->GenerateContour(OpenHeightfield);
