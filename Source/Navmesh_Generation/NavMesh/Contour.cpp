@@ -40,8 +40,6 @@ void AContour::Init(const AOpenHeightfield* OpenHeightfield)
 void AContour::GenerateContour(AOpenHeightfield* OpenHeightfield)
 {
 	int DiscardedCountour = 0;
-	TArray<FContourVertexData> TempRawVertices;
-	TArray<FVector> TempSimplifiedVertices;
 
 	FindNeighborRegionConnection(OpenHeightfield, DiscardedCountour);
 
@@ -49,12 +47,10 @@ void AContour::GenerateContour(AOpenHeightfield* OpenHeightfield)
 	{
 		UOpenSpan* CurrentSpan = Span.Value;
 
-		int GridIndex = Span.Key;
-
 		do
 		{
 			//If span belongs to the null region or has no neighbor connected to another one, skip it 
-			if (CurrentSpan->RegionID == NULL_REGION || !CurrentSpan->CheckNeighborRegionFlag() || CurrentSpan->RegionID != 3)
+			if (CurrentSpan->RegionID == NULL_REGION || !CurrentSpan->CheckNeighborRegionFlag())
 			{
 				CurrentSpan = CurrentSpan->nextSpan;
 				continue;
@@ -68,25 +64,24 @@ void AContour::GenerateContour(AOpenHeightfield* OpenHeightfield)
 			UUtilityDebug::DrawMinMaxBox(GetWorld(), SpanMinCoord, SpanMaxCoord, FColor::Red, 20.0f, 0.5f);
 			*/
 
-			//TODO: Consider array initialization here, instead of resetting them
-			/*TempRawVertices.Empty();
-			TempSimplifiedVertices.Empty();*/
+			TArray<FContourVertexData> TempRawVertices;
+			TArray<FVector> TempSimplifiedVertices;
 
 			int NeighborDir = 0;
 
+			//Make sure the neighbor considered reside in another region, otherwise switch direction until it is
 			while (!CurrentSpan->GetNeighborRegionFlag(NeighborDir))
 			{
 				NeighborDir++;
 			}
 
 			BuildRawContours(CurrentSpan, NeighborDir, TempRawVertices);
+			DrawRegionRawContour(TempRawVertices, CurrentSpan->RegionID);
 
 			CurrentSpan = CurrentSpan->nextSpan;
 		} 
 		while (CurrentSpan);
 	}
-
-	DrawRegionRawContour(TempRawVertices, 3);
 }
 
 void AContour::FindNeighborRegionConnection(const AOpenHeightfield* OpenHeightfield, int& NumberOfContourDiscarded)
@@ -151,21 +146,17 @@ void AContour::BuildRawContours(UOpenSpan* Span, const int StartDir, TArray<FCon
 	//Check the OpenHeightfield class for more details
 	int LoopCount = 0;
 
-	FVector SpanMinCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width, BoundMin.Y + CellSize * CurrentSpan->Depth, BoundMin.Z + CellSize * (CurrentSpan->Min));
-	FVector SpanMaxCoord = FVector(SpanMinCoord.X + CellSize, SpanMinCoord.Y + CellSize, BoundMin.Z + CellSize * (CurrentSpan->Min));
-	UUtilityDebug::DrawMinMaxBox(GetWorld(), SpanMinCoord, SpanMaxCoord, FColor::Red, 20.0f, 0.5f);
-
 	while (LoopCount < UINT16_MAX)
 	{
+		//If the neighbor span does not belong to the same region
 		if (CurrentSpan->GetNeighborRegionFlag(Direction))
-		{			
+		{	
+			//Based on the span and field data retrieved the X, Y, Z position of the vertex
 			float PosX = BoundMin.X + CellSize * StartWidth;
 			float PosY = BoundMin.Y + (CellSize * StartDepth + CellSize);
 			float PosZ = BoundMin.Z + CellSize * GetCornerHeightIndex(CurrentSpan, Direction);
 
-			/*FVector DebugTest(PosX, PosY, PosZ);
-			DrawDebugSphere(GetWorld(), DebugTest, 1.0f, 10, FColor::Green, false, 20.0f, 0, 10.0f);*/
-
+			//Update the X and Y position based on the current direction
 			switch (Direction)
 			{
 			case 0: PosY -= CellSize; break;
@@ -173,9 +164,7 @@ void AContour::BuildRawContours(UOpenSpan* Span, const int StartDir, TArray<FCon
 			case 2: PosX += CellSize; break;
 			}
 
-			/*DebugTest = FVector(PosX, PosY, PosZ);
-			DrawDebugSphere(GetWorld(), DebugTest, 1.0f, 10, FColor::Blue, false, 20.0f, 0, 10.0f);*/
-
+			//If the neighbor exist, store its current region ID, otherwise default to 0
 			int RegionIDDirection = NULL_REGION;
 			UOpenSpan* NeighborSpan = CurrentSpan->GetAxisNeighbor(Direction);
 			if (NeighborSpan)
@@ -183,20 +172,24 @@ void AContour::BuildRawContours(UOpenSpan* Span, const int StartDir, TArray<FCon
 				RegionIDDirection = NeighborSpan->RegionID;
 			}
 
+			//Initialize a new instance and add the new vertex data to the array
 			FContourVertexData Vertex;
 			Vertex.Coordinate = FVector(PosX, PosY, PosZ);
-			Vertex.RegionID = RegionIDDirection;
-			Vertex.SpanID = CurrentSpan->RegionID;
+			Vertex.ExternalRegionID = RegionIDDirection;
+			Vertex.InternalRegionID = CurrentSpan->RegionID;
 
 			Vertices.Add(Vertex);
 
+			//Reset the flage of the neighbor processed and increase the direction in a clockwise direction
 			CurrentSpan->NeighborInDiffRegion[Direction] = false;
 			Direction = UOpenSpan::IncreaseNeighborDirection(Direction, 1);
 		}
 		else
 		{
+			//Set the span to the neighbor one considered
 			CurrentSpan = CurrentSpan->GetAxisNeighbor(Direction);
 
+			//Move the wisth and depth to match the new span coordinates
 			switch (Direction)
 			{
 			case 0: StartWidth--; break;
@@ -205,9 +198,11 @@ void AContour::BuildRawContours(UOpenSpan* Span, const int StartDir, TArray<FCon
 			case 3: StartDepth++; break;
 			}
 
+			//Rotate counterclockwise
 			Direction = UOpenSpan::IncreaseNeighborDirection(Direction, 3);
 		}
 
+		//If the loop is complete and it goes back to the original span, exit
 		if (CurrentSpan == Span && Direction == StartDir)
 		{
 			break;
@@ -262,12 +257,11 @@ void AContour::DrawRegionRawContour(TArray<FContourVertexData>& Vertices, int Cu
 
 	for (auto Vertex : Vertices)
 	{
-		if (Vertex.SpanID == CurrentRegionID)
+		if (Vertex.InternalRegionID == CurrentRegionID)
 		{
 			TempContainer.Add(Vertex.Coordinate);
 		}
 	}
-
 	UUtilityDebug::DrawPolygon(GetWorld(), TempContainer, FColor::Blue, 20.0f, 2.0f);
 }
 
