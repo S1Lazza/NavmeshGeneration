@@ -4,6 +4,8 @@
 #include "Contour.h"
 #include "OpenHeightfield.h"
 #include "OpenSpan.h"
+#include "Engine/TextRenderActor.h"
+#include "Components/TextRenderComponent.h"
 #include "../Utility/UtilityDebug.h"
 
 // Sets default values
@@ -56,18 +58,11 @@ void AContour::GenerateContour(AOpenHeightfield* OpenHeightfield)
 				continue;
 			}
 
-			/* 
-			* Draw the region border spans of each region
-			float Offset = 2.f;
-			FVector SpanMinCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width + Offset, BoundMin.Y + CellSize * CurrentSpan->Depth + Offset, BoundMin.Z + CellSize * CurrentSpan->Min);
-			FVector SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellSize * (CurrentSpan->Min));
-			UUtilityDebug::DrawMinMaxBox(GetWorld(), SpanMinCoord, SpanMaxCoord, FColor::Red, 20.0f, 0.5f);
-			*/
-
 			TArray<FContourVertexData> TempRawVertices;
-			TArray<FVector> TempSimplifiedVertices;
+			TArray<FContourVertexData> TempSimplifiedVertices;
 
 			int NeighborDir = 0;
+			bool OnlyNullRegionConnected = true;
 
 			//Make sure the neighbor considered reside in another region, otherwise switch direction until it is
 			while (!CurrentSpan->GetNeighborRegionFlag(NeighborDir))
@@ -75,13 +70,21 @@ void AContour::GenerateContour(AOpenHeightfield* OpenHeightfield)
 				NeighborDir++;
 			}
 
-			BuildRawContours(CurrentSpan, NeighborDir, TempRawVertices);
-			DrawRegionRawContour(TempRawVertices, CurrentSpan->RegionID);
+			BuildRawContours(CurrentSpan, NeighborDir, OnlyNullRegionConnected, TempRawVertices);
+			BuildSimplifiedCountour(CurrentSpan->RegionID, OnlyNullRegionConnected, TempRawVertices, TempSimplifiedVertices);
+			
+			//Add the vertices from the temporary container to the general one
+			for (FContourVertexData Vertex : TempSimplifiedVertices)
+			{
+				SimplifiedVertices.Add(Vertex);
+			}
 
 			CurrentSpan = CurrentSpan->nextSpan;
 		} 
 		while (CurrentSpan);
 	}
+
+	DrawRegionRawContour(SimplifiedVertices);
 }
 
 void AContour::FindNeighborRegionConnection(const AOpenHeightfield* OpenHeightfield, int& NumberOfContourDiscarded)
@@ -135,8 +138,10 @@ void AContour::FindNeighborRegionConnection(const AOpenHeightfield* OpenHeightfi
 	}
 }
 
-void AContour::BuildRawContours(UOpenSpan* Span, const int StartDir, TArray<FContourVertexData>& Vertices)
+void AContour::BuildRawContours(UOpenSpan* Span, const int StartDir, bool& OnlyNullRegionConnection, TArray<FContourVertexData>& VerticesRaw)
 {
+	int IndexRaw = 0;
+
 	UOpenSpan* CurrentSpan = Span;
 	int Direction = StartDir;
 	int StartWidth = CurrentSpan->Width;
@@ -172,17 +177,25 @@ void AContour::BuildRawContours(UOpenSpan* Span, const int StartDir, TArray<FCon
 				RegionIDDirection = NeighborSpan->RegionID;
 			}
 
+			//Check if the current contour is bordering a non-null region, if not then is an island contour
+			if (RegionIDDirection != NULL_REGION && OnlyNullRegionConnection)
+			{
+				OnlyNullRegionConnection = false;
+			}
+
 			//Initialize a new instance and add the new vertex data to the array
 			FContourVertexData Vertex;
 			Vertex.Coordinate = FVector(PosX, PosY, PosZ);
 			Vertex.ExternalRegionID = RegionIDDirection;
 			Vertex.InternalRegionID = CurrentSpan->RegionID;
 
-			Vertices.Add(Vertex);
+			Vertex.RawIndex = IndexRaw;
+			VerticesRaw.Add(Vertex);
 
 			//Reset the flage of the neighbor processed and increase the direction in a clockwise direction
 			CurrentSpan->NeighborInDiffRegion[Direction] = false;
 			Direction = UOpenSpan::IncreaseNeighborDirection(Direction, 1);
+			IndexRaw++;
 		}
 		else
 		{
@@ -211,6 +224,204 @@ void AContour::BuildRawContours(UOpenSpan* Span, const int StartDir, TArray<FCon
 		LoopCount++;
 	}
 	
+}
+
+void AContour::BuildSimplifiedCountour(const int CurrentRegionID, const bool OnlyNullRegionConnection, TArray<FContourVertexData>& VerticesRaw, TArray<FContourVertexData>& VerticesSimplified)
+{
+	//If the region considered is an island region, store the bottom-left and top-right vertices
+	if (OnlyNullRegionConnection)
+	{
+		FContourVertexData BottomLeft;
+		BottomLeft = VerticesRaw[0];
+
+		FContourVertexData TopRight;
+		TopRight = VerticesRaw[0];
+
+		//Iterated through all the vertices to find the bottom left and top right ones
+		for (auto Vertex : VerticesRaw)
+		{
+			FVector Pos = Vertex.Coordinate;
+			
+			if (Pos.X < BottomLeft.Coordinate.X || (Pos.X == BottomLeft.Coordinate.X && Pos.Y < BottomLeft.Coordinate.Y))
+			{
+				BottomLeft = Vertex;
+			}
+
+			if (Pos.X >= TopRight.Coordinate.X || (Pos.X == TopRight.Coordinate.X && Pos.Y > TopRight.Coordinate.Y))
+			{
+				TopRight = Vertex;
+			}
+		}
+
+		//Add them to the array of the simplified contour
+		VerticesSimplified.Add(BottomLeft);
+		VerticesSimplified.Add(TopRight);
+	}
+
+	//Otherwise store the portal vertices, the ones that are located where a region switch happen 
+	else
+	{
+		for (int Index = 0; Index < VerticesRaw.Num(); Index++)
+		{
+			int Region1 = VerticesRaw[Index].ExternalRegionID;
+			
+			int NextIndex = (Index + 1) % VerticesRaw.Num();
+
+			int Region2 = VerticesRaw[NextIndex].ExternalRegionID;
+
+			//Check two consecutive vertices, if their region bordering differs, they are portal vertices and must be added to the array
+			if (Region1 != Region2)
+			{
+				VerticesSimplified.Add(VerticesRaw[Index]);
+			}
+		}
+	}
+
+	ReinsertNullRegionVertices(VerticesRaw, VerticesSimplified);
+	CheckNullRegionMaxEdge(VerticesRaw, VerticesSimplified);
+	RemoveDuplicatesVertices(VerticesSimplified);
+}
+
+void AContour::ReinsertNullRegionVertices(TArray<FContourVertexData>& VerticesRaw, TArray<FContourVertexData>& VerticesSimplified)
+{
+	int RawVerticesCount = VerticesRaw.Num();
+	int SimplifiedVerticesCount = VerticesSimplified.Num();
+
+	//No point in executing the calculation if there are no vertices to read the data from or to compare to
+	if (RawVerticesCount == 0 || SimplifiedVerticesCount == 0)
+	{
+		return;
+	}
+
+	//Iterate through all the vertices, checking one edge at time
+	for (int MandatoryIndex1 = 0; MandatoryIndex1 < SimplifiedVerticesCount; MandatoryIndex1++)
+	{
+		//The mandatory indexes represent the vertex locations forming the edge to check against inside the simplified array data
+		//The raw indexes represent the vertex locations in between the edge created by the simplyfed array data
+		int MandatoryIndex2 = (MandatoryIndex1 + 1) % SimplifiedVerticesCount;
+		int RawIndex1 = VerticesSimplified[MandatoryIndex1].RawIndex;
+		int RawIndex2 = VerticesSimplified[MandatoryIndex2].RawIndex;
+
+		//Check to make sure the last point is correctly skipped, preventing the code to reach the while loop and possibly create an infinite loop
+		int IndexToCheck = 0;
+		if (RawIndex2 == 0)
+		{
+			IndexToCheck = RawVerticesCount - 1;
+		}
+		else
+		{
+			IndexToCheck = RawIndex2;
+		}
+
+		//Condition to check the vertices to skip, the ones that
+		// 1 - have the same region ID of the final point of the dge considered
+		// 2- the region ID is different from the null region
+		//For vertices that represents portals between non null region, there is no calculation to apply and all the raw vertices are discarded
+		if (VerticesRaw[(RawIndex1 + 1) % RawVerticesCount].ExternalRegionID == VerticesRaw[IndexToCheck].ExternalRegionID &&
+			VerticesRaw[(RawIndex1 + 1) % RawVerticesCount].ExternalRegionID != NULL_REGION)
+		{
+			continue;
+		}
+
+		int IndexTestVertex = (RawIndex1 + 1) % RawVerticesCount;
+
+		//As long as the current test vertex index is not equal to the second raw index, continue looping
+		while (IndexTestVertex != RawIndex2)
+		{
+			//Find the distance between the edge and the vertex considered
+			float Deviation = FMath::PointDistToSegment(VerticesRaw[IndexTestVertex].Coordinate, VerticesSimplified[MandatoryIndex1].Coordinate, VerticesSimplified[MandatoryIndex2].Coordinate);
+
+			//If greater than the value established
+			if (Deviation >= EdgeMaxDeviation)
+			{
+				//Insert the new vertex in between, making sure to update all the needed value 
+				//(the total vertices in the array, the vertices forming the edge to check against and the current index to test)
+				VerticesSimplified.Insert(VerticesRaw[IndexTestVertex], MandatoryIndex1 + 1);
+				SimplifiedVerticesCount++;
+				MandatoryIndex1++;
+				MandatoryIndex2 = (MandatoryIndex2 + 1) % SimplifiedVerticesCount;
+				IndexTestVertex = (IndexTestVertex + 1) % RawVerticesCount;
+			}
+			else
+			{
+				//Otherwise simply increase the index of the test one
+				IndexTestVertex = (IndexTestVertex + 1) % RawVerticesCount;
+			}
+		}
+
+	}
+}
+
+void AContour::CheckNullRegionMaxEdge(TArray<FContourVertexData>& VerticesRaw, TArray<FContourVertexData>& VerticesSimplified)
+{
+	//If the value to compare against is 0 or less there is no point in running the code
+	if (MaxEdgeLenght <= 0)
+	{
+		return;
+	}
+
+	int RawVerticesCount = VerticesRaw.Num();
+	int SimplifiedVerticesCount = VerticesSimplified.Num();
+
+	//Similar logic to the ReinsertNullRegionVertices method, taking into consideration an edge of two consecutive vertices bordering the null region
+	for (int MandatoryVertex1 = 0; MandatoryVertex1 < SimplifiedVerticesCount; MandatoryVertex1++)
+	{
+		int MandatoryVertex2 = (MandatoryVertex1 + 1) % SimplifiedVerticesCount;
+
+		//Execute the logic only if the final vertices of the edge belongs to the null region
+		if (VerticesSimplified[MandatoryVertex2].ExternalRegionID == NULL_REGION)
+		{
+			float DistanceSqr = FVector::DistSquared(VerticesSimplified[MandatoryVertex1].Coordinate, VerticesSimplified[MandatoryVertex2].Coordinate);
+
+			//Check the length of the edge and, if it's greater than the value established, insert a vertex at its middle point
+			while (DistanceSqr > MaxEdgeLenght * MaxEdgeLenght)
+			{
+				FVector Point1 = VerticesSimplified[MandatoryVertex1].Coordinate;
+				FVector Point2 = VerticesSimplified[MandatoryVertex2].Coordinate;
+
+				FVector MiddlePoint = (Point2 - Point1) / 2 + Point1;
+
+				//The new vertex inserted is initialized with the data of the initial vewrtex of the edge
+				FContourVertexData NewPoint;
+				NewPoint.Coordinate = MiddlePoint;
+				NewPoint.ExternalRegionID = VerticesSimplified[MandatoryVertex1].ExternalRegionID;
+				NewPoint.InternalRegionID = VerticesSimplified[MandatoryVertex1].InternalRegionID;
+
+				VerticesSimplified.Insert(NewPoint, MandatoryVertex1 + 1);
+
+				//After the insertion, the total number of vertices is updated (needed for the loop) as well as the final vertex of the edge
+				SimplifiedVerticesCount++;
+				MandatoryVertex2 = (MandatoryVertex1 + 1) % SimplifiedVerticesCount;
+
+				//The loop continues because the new edge created could still be longer than the value used as conditions
+				//So the distance is ricalculated before repeating the loop
+				DistanceSqr = FVector::DistSquared(VerticesSimplified[MandatoryVertex1].Coordinate, VerticesSimplified[MandatoryVertex2].Coordinate);
+			}
+		}
+	}
+}
+
+void AContour::RemoveDuplicatesVertices(TArray<FContourVertexData>& VerticesSimplified)
+{
+	int SimplifiedVerticesCount = VerticesSimplified.Num();
+
+	for (int Index = 0; Index < SimplifiedVerticesCount; Index++)
+	{
+		int NextIndex = (Index + 1) % SimplifiedVerticesCount;
+
+		float X1 = VerticesSimplified[Index].Coordinate.X;
+		float X2 = VerticesSimplified[NextIndex].Coordinate.X;
+		float Y1 = VerticesSimplified[Index].Coordinate.Y;
+		float Y2= VerticesSimplified[NextIndex].Coordinate.Y;
+
+		//Check if the X and Y coordinates of two consecutive vertices are equal
+		if (FMath::IsNearlyEqual(X1, X2, 0.5f) && FMath::IsNearlyEqual(Y1, Y2, 0.5f))
+		{
+			//If they are one of the vertices can be removed as it's a non needed duplicate
+			VerticesSimplified.RemoveAt(NextIndex);
+			SimplifiedVerticesCount--;
+		}
+	}
 }
 
 int AContour::GetCornerHeightIndex(UOpenSpan* Span, const int NeighborDir)
@@ -251,17 +462,33 @@ int AContour::GetCornerHeightIndex(UOpenSpan* Span, const int NeighborDir)
 	return MaxFloor;
 }
 
-void AContour::DrawRegionRawContour(TArray<FContourVertexData>& Vertices, int CurrentRegionID)
+void AContour::DrawRegionRawContour(TArray<FContourVertexData>& Vertices)
 {
 	TArray<FVector> TempContainer;
+	int LoopIndex = 1;
 
-	for (auto Vertex : Vertices)
+	while (LoopIndex < RegionCount)
 	{
-		if (Vertex.InternalRegionID == CurrentRegionID)
+		for (auto Vertex : Vertices)
 		{
-			TempContainer.Add(Vertex.Coordinate);
+			/*FActorSpawnParameters SpawnInfo;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+			ATextRenderActor* Text = GetWorld()->SpawnActor<ATextRenderActor>(Vertex.Coordinate, FRotator(0.f, 180.f, 0.f), SpawnInfo);
+			Text->GetTextRender()->SetText(FString::FromInt(LoopIndex));
+			Text->GetTextRender()->SetTextRenderColor(FColor::Red);*/
+
+			/*DrawDebugSphere(GetWorld(), Vertex.Coordinate, 4.f, 2.f, FColor::Red, false, 20.f, 0.f, 2.f);*/
+
+			if (Vertex.InternalRegionID == LoopIndex)
+			{
+				TempContainer.Add(Vertex.Coordinate);
+			}
 		}
+
+		UUtilityDebug::DrawPolygon(GetWorld(), TempContainer, FColor::Blue, 20.0f, 2.0f);
+		TempContainer.Empty();
+		LoopIndex++;
 	}
-	UUtilityDebug::DrawPolygon(GetWorld(), TempContainer, FColor::Blue, 20.0f, 2.0f);
 }
 

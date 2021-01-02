@@ -108,7 +108,7 @@ private:
 	int RegionCount = 0;
 
 	//Minimum span size of the island region to remove
-	int MinUnconnectedRegionSize = 10;
+	int MinUnconnectedRegionSize = 4;
 
 	//Minimum span size of the region to merge
 	int MinMergeRegionSize = 10;

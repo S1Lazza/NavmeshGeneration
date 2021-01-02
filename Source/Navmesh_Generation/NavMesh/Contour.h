@@ -23,6 +23,8 @@ struct FContourVertexData
 	//Internal region ID to which the vertex is adjacent by/connected to (the one of the current span considered in the processing)
 	//Stored for debug purposes
 	int InternalRegionID = 0;
+
+	int RawIndex = 0;
 };
 
 UCLASS()
@@ -47,19 +49,41 @@ public:
 	void FindNeighborRegionConnection(const AOpenHeightfield* OpenHeightfield, int& NumberOfContourDiscarded);
 
 	//Build the raw countour of a region, by iterating through all the border spans of it
-	void BuildRawContours(UOpenSpan* Span, const int StartDir, TArray<FContourVertexData>& Vertices);
+	void BuildRawContours(UOpenSpan* Span, const int StartDir, bool& OnlyNullRegionConnection, TArray<FContourVertexData>& RawVertices);
+
+	//From the raw countour data, retrieved the simplified contour by removing the non-mandatory vertices
+	//The non-mandatory vertices are the ones that represent a switch in the region the contour is bordering
+	//For island region the top-right and bottom-left vertices are saved instead
+	void BuildSimplifiedCountour(const int CurrentRegionID, const bool OnlyNullRegionConnection, TArray<FContourVertexData>& VerticesRaw, TArray<FContourVertexData>& VerticesSimplified);
+
+	//Reinsert into the simplified contour vertices from the raw contour according to the EdgeMaxDeviation value (only for vertices bordering the NULL REGION)
+	//Such that none of the original vertices are farther than edgeMaxDeviation distance from the simplified edges
+	//The algorithm used to ensure this is the Ramer Douglas Peucker - https://karthaus.nl/rdp/
+	void ReinsertNullRegionVertices(TArray<FContourVertexData>& VerticesRaw, TArray<FContourVertexData>& VerticesSimplified);
+
+	//Insert additional vertices to make sure that no edge is longer than the MaxEdgeLength value
+	//The edge inserted are located at the midpoint of the dge taken into consideration
+	void CheckNullRegionMaxEdge(TArray<FContourVertexData>& VerticesRaw, TArray<FContourVertexData>& VerticesSimplified);
+
+	//Check for possible consecutive vertices duplicates and, if found, remove them
+	void RemoveDuplicatesVertices(TArray<FContourVertexData>& VerticesSimplified);
 
 	//Get the highest grid cell value of the corner spans
 	int GetCornerHeightIndex(UOpenSpan* Span, const int NeighborDir);
 
 	//Draw the raw contour of the region passed in
-	void DrawRegionRawContour(TArray<FContourVertexData>& Vertices, int CurrentRegionID);
+	void DrawRegionRawContour(TArray<FContourVertexData>& Vertices);
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 private:
+	//The maximum distance the edge of the contour may deviate from the source geometry - less the distance, more precise and intense the calculation
+	float EdgeMaxDeviation = 25.f;
+
+	float MaxEdgeLenght = 35.f;
+
 	//Min coordinates of the heightfield derived from the bounds of the navmesh area
 	FVector BoundMin;
 
@@ -77,12 +101,6 @@ private:
 
 	//Region ID to which the countour refer to
 	int RegionID;
-
-	//Total amount of the detailed vertices
-	int RawVerticesCount;
-
-	//Total amount of the simplified vertices 
-	int SimplifiedVerticesCount;
 
 	//Vertices representing the detailed contour
 	TArray<FContourVertexData> RawVertices;

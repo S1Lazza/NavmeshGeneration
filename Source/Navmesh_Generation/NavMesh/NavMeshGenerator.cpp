@@ -126,8 +126,10 @@ void ANavMeshGenerator::CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield,
 		OpenHeightfield->GenerateDistanceField();
 		/*OpenHeightfield->DrawDistanceFieldDebugData(false, true);*/
 		OpenHeightfield->GenerateRegions();
+
+		//TODO: There's an infinite loop when the MinUnconnectedRegion parameter is set to 0 or 1, check why
 		OpenHeightfield->HandleSmallRegions();
-		OpenHeightfield->DrawDebugRegions(false, true);
+		OpenHeightfield->DrawDebugRegions(false, false);
 	}
 }
 
