@@ -39,7 +39,7 @@ void AContour::Init(const AOpenHeightfield* OpenHeightfield)
 	RegionCount = OpenHeightfield->RegionCount;
 }
 
-void AContour::GenerateContour(AOpenHeightfield* OpenHeightfield)
+void AContour::GenerateContour(const AOpenHeightfield* OpenHeightfield)
 {
 	int DiscardedCountour = 0;
 
@@ -72,7 +72,7 @@ void AContour::GenerateContour(AOpenHeightfield* OpenHeightfield)
 
 			BuildRawContours(CurrentSpan, NeighborDir, OnlyNullRegionConnected, TempRawVertices);
 			BuildSimplifiedCountour(CurrentSpan->RegionID, OnlyNullRegionConnected, TempRawVertices, TempSimplifiedVertices);
-			
+
 			//Add the vertices from the temporary container to the general one
 			for (FContourVertexData Vertex : TempSimplifiedVertices)
 			{
@@ -471,20 +471,23 @@ void AContour::DrawRegionRawContour(TArray<FContourVertexData>& Vertices)
 	{
 		for (auto Vertex : Vertices)
 		{
-			/*FActorSpawnParameters SpawnInfo;
-			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-			ATextRenderActor* Text = GetWorld()->SpawnActor<ATextRenderActor>(Vertex.Coordinate, FRotator(0.f, 180.f, 0.f), SpawnInfo);
-			Text->GetTextRender()->SetText(FString::FromInt(LoopIndex));
-			Text->GetTextRender()->SetTextRenderColor(FColor::Red);*/
-
-			/*DrawDebugSphere(GetWorld(), Vertex.Coordinate, 4.f, 2.f, FColor::Red, false, 20.f, 0.f, 2.f);*/
-
 			if (Vertex.InternalRegionID == LoopIndex)
 			{
 				TempContainer.Add(Vertex.Coordinate);
 			}
 		}
+
+		/*for (int Index = 0; Index < TempContainer.Num(); Index++)
+		{
+			FActorSpawnParameters SpawnInfo;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+			ATextRenderActor* Text = GetWorld()->SpawnActor<ATextRenderActor>(TempContainer[Index], FRotator(0.f, 180.f, 0.f), SpawnInfo);
+			Text->GetTextRender()->SetText(FString::FromInt(Index));
+			Text->GetTextRender()->SetTextRenderColor(FColor::Red);
+
+			DrawDebugSphere(GetWorld(), TempContainer[Index], 4.f, 2.f, FColor::Red, false, 20.f, 0.f, 2.f);
+		}*/
 
 		UUtilityDebug::DrawPolygon(GetWorld(), TempContainer, FColor::Blue, 20.0f, 2.0f);
 		TempContainer.Empty();

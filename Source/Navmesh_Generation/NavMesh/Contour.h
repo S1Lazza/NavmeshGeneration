@@ -24,6 +24,7 @@ struct FContourVertexData
 	//Stored for debug purposes
 	int InternalRegionID = 0;
 
+	//Vertex inside inside the raw contour, useful for looping while creating the simplfied contour
 	int RawIndex = 0;
 };
 
@@ -42,7 +43,7 @@ public:
 	void Init(const AOpenHeightfield* OpenHeightfield);
 
 	//Generate the countour of the region
-	void GenerateContour(AOpenHeightfield* OpenHeightfield);
+	void GenerateContour(const AOpenHeightfield* OpenHeightfield);
 
 	//TODO: Double check the way in which the region spans are checked, there's code you can reuse
 	//Check if the axis neighbor of a specific span belong or not to the same region the span considered is in - the span in the NULL_REGIOn are skipped
@@ -74,6 +75,12 @@ public:
 	//Draw the raw contour of the region passed in
 	void DrawRegionRawContour(TArray<FContourVertexData>& Vertices);
 
+	//Vertices representing the simplified contour
+	TArray<FContourVertexData> SimplifiedVertices;
+
+	//Total number of regions
+	int RegionCount;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -82,7 +89,7 @@ private:
 	//The maximum distance the edge of the contour may deviate from the source geometry - less the distance, more precise and intense the calculation
 	float EdgeMaxDeviation = 25.f;
 
-	float MaxEdgeLenght = 35.f;
+	float MaxEdgeLenght = 30.f;
 
 	//Min coordinates of the heightfield derived from the bounds of the navmesh area
 	FVector BoundMin;
@@ -96,15 +103,6 @@ private:
 	//Height of the single cells (voxels) in which the heightfiels is subdivided
 	float CellHeight;
 
-	//Total number of regions
-	int RegionCount;
-
 	//Region ID to which the countour refer to
 	int RegionID;
-
-	//Vertices representing the detailed contour
-	TArray<FContourVertexData> RawVertices;
-
-	//Vertices representing the simplified contour
-	TArray<FContourVertexData> SimplifiedVertices;
 };

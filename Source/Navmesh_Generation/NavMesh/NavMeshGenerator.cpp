@@ -7,6 +7,7 @@
 #include "SolidHeightfield.h"
 #include "OpenHeightfield.h"
 #include "Contour.h"
+#include "PolygonMesh.h"
 #include "../Utility/UtilityGeneral.h"
 #include "../Utility/UtilityDebug.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -79,6 +80,7 @@ void ANavMeshGenerator::GenerateNavmesh()
 	ASolidHeightfield* SolidHF = GetWorld()->SpawnActor<ASolidHeightfield>(GetActorLocation(), FRotator(0.f, 0.f, 0.f), SpawnInfo);
 	AOpenHeightfield* OpenHF = GetWorld()->SpawnActor<AOpenHeightfield>(GetActorLocation(), FRotator(0.f, 0.f, 0.f), SpawnInfo);
 	AContour* Contour = GetWorld()->SpawnActor<AContour>(GetActorLocation(), FRotator(0.f, 0.f, 0.f), SpawnInfo);
+	APolygonMesh* PolygonMesh = GetWorld()->SpawnActor<APolygonMesh>(GetActorLocation(), FRotator(0.f, 0.f, 0.f), SpawnInfo);
 
 	SolidHF->DefineFieldsBounds(GetActorLocation(), BoxBounds->GetScaledBoxExtent());
 
@@ -89,6 +91,7 @@ void ANavMeshGenerator::GenerateNavmesh()
 
 	CreateOpenHeightfield(OpenHF, SolidHF, true);
 	CreateContour(Contour, OpenHF);
+	CreatePolygonMesh(PolygonMesh, Contour, OpenHF);
 }
 
 void ANavMeshGenerator::CreateSolidHeightfield(ASolidHeightfield* SolidHeightfield, const UStaticMeshComponent* Mesh)
@@ -133,10 +136,16 @@ void ANavMeshGenerator::CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield,
 	}
 }
 
-void ANavMeshGenerator::CreateContour(AContour* Contour, AOpenHeightfield* OpenHeightfield)
+void ANavMeshGenerator::CreateContour(AContour* Contour, const AOpenHeightfield* OpenHeightfield)
 {
 	Contour->Init(OpenHeightfield);
 	Contour->GenerateContour(OpenHeightfield);
+}
+
+void ANavMeshGenerator::CreatePolygonMesh(APolygonMesh* PolyMesh, const AContour* Contour, const AOpenHeightfield* OpenHeightfield)
+{
+	PolyMesh->Init(OpenHeightfield);
+	PolyMesh->GeneratePolygonMesh(Contour);
 }
 
 void ANavMeshGenerator::InitializeComponents()
