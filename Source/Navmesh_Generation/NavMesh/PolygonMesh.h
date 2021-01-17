@@ -28,12 +28,27 @@ struct FTriangleData
 {
 	GENERATED_USTRUCT_BODY()
 
-	//Vertex inside inside the raw contour, useful for looping while creating the simplfied contour
-	int Index = 0;
+	//The value corresponding to the vertex index inside the contour data
+	int ContourIndex = 0;
 
+	//If true ndicates that the index took into consideration is the middle point of a triangle valid as partition 
 	bool IsTriangleCenterIndex = false;
 };
 
+USTRUCT()
+struct FPolygonMergeData
+{
+	GENERATED_USTRUCT_BODY()
+
+	//Squared lenght of the edge shared between the polygons
+	float EdgeLenghtSqrt = 0.f;
+
+	//The index of the start of the shared edge in polygon A
+	int StartingSharedIndexA = 0;
+
+	//The index of the start of the shared edge in polygon A
+	int StartingSharedIndexB = 0;
+};
 
 UCLASS()
 class NAVMESH_GENERATION_API APolygonMesh : public AActor
@@ -59,6 +74,10 @@ public:
 	//Attempt to triangluate a polygon based on the vertex and indices data provided
 	//Return the total number of triangles generate, negative number if the generation fails
 	int Triangulate(TArray<FVector>& Vertices, TArray<FTriangleData>& Indices, TArray<int>& Triangles);
+
+	void GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& PolyIndicesB, TArray<FVector>& Vertices, FPolygonMergeData& MergingInfo);
+
+	int GetPolyVertCount(int PolyStartingIndex, TArray<int>& PolygonIndices);
 
 	//Determine if vertex B of a polygon at vertex A lies within the internal angle
 	//If not it means that the possible partition to subdvide the polygon is external to the polygon 
@@ -96,6 +115,9 @@ public:
 	//Draw the triangles forming the polymesh
 	void DrawDebugPolyMeshTriangles(const TArray<FVector>& Vertices, const TArray<int>& Triangles, const int NumberOfTriangles);
 
+	//Draw the merged polygons of the single contours
+	void DrawDebugPolyMeshPolys(const TArray<FVector>& Vertices, const TArray<int>& Polys);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -114,7 +136,7 @@ private:
 	float CellHeight;
 
 	//Maximum number of vertices per polygon, clamped to be >= 3
-	int MaxVertexPerPoly = 3;
+	int MaxVertexPerPoly = 6;
 
 	TArray<FContourData> ContoursData;
 };

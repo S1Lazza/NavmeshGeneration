@@ -111,7 +111,7 @@ private:
 	int MinUnconnectedRegionSize = 4;
 
 	//Minimum span size of the region to merge
-	int MinMergeRegionSize = 10;
+	int MinMergeRegionSize = 20;
 
 	//Container of all the openspans contained in the heightfield
 	UPROPERTY()

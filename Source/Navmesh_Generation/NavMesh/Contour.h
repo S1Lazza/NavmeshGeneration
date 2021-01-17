@@ -89,7 +89,7 @@ private:
 	//The maximum distance the edge of the contour may deviate from the source geometry - less the distance, more precise and intense the calculation
 	float EdgeMaxDeviation = 25.f;
 
-	float MaxEdgeLenght = 30.f;
+	float MaxEdgeLenght = 60.f;
 
 	//Min coordinates of the heightfield derived from the bounds of the navmesh area
 	FVector BoundMin;
