@@ -67,7 +67,7 @@ int APolygonMesh::SplitContourDataByRegion(const AContour* Contour)
 	return MaxNumberOfVertices;
 }
 
-void APolygonMesh::GeneratePolygonMesh(const AContour* Contour)
+void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecursiveMerging, int NumberOfRecursion)
 {
 	int TotalContourVertices = Contour->SimplifiedVertices.Num();
 
@@ -96,7 +96,6 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour)
 	TArray<int> GlobalPolys;
 	TArray<int> GlobalIndices;
 	TArray<int> GlobalRegions;
-	GlobalRegions.SetNum(MaxPossiblePolygons);
 
 	/*
 	Temporary variables used during the processing and merging of the polygons
@@ -106,10 +105,6 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour)
 
 	//The external array contains the polygons, the internal one the indices relative to that specific polygon
 	TArray<TArray<int>> TempPolysIndices;
-
-	FPolygonMergeData PolyMergeInfo;
-	TArray<int>MergedPoly;
-	MergedPoly.SetNum(MaxVertexPerPoly);
 
 	//Iterate through the contours with valid vertices size
 	for (int ContourIndex = 0; ContourIndex < ContoursData.Num(); ContourIndex++)
@@ -177,59 +172,17 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour)
 		//Execute this code if an additional merging of the polygons is required
 		if (MaxVertexPerPoly > 3)
 		{
-			while (true)
+			//Execute the merging of the polygons
+			PerformPolygonMerging(TempPolysIndices, GlobalVertices, PolyCount);
+
+			//If needed an additional numbero of merging can be done to reduce the number of polygons created
+			if (PerformRecursiveMerging)
 			{
-				float LongestMergeEdge = -1.f;
-				int BestPolyA = -1;
-				int BestPolyB = -1;
-				int PolyAVertIndex = -1;
-				int PolyBVertIndex = -1;
-
-				//Iterate through all the indices of consecutive polygons, checking if they are mergeable
-				for (int PolyIndexA = 0; PolyIndexA < TempPolysIndices.Num() - 1; PolyIndexA++)
+				for (int Iteration = 0; Iteration < NumberOfRecursion; Iteration++)
 				{
-					for (int PolyIndexB = PolyIndexA + 1; PolyIndexB < TempPolysIndices.Num(); PolyIndexB++)
-					{
-						GetPolyMergeInfo(TempPolysIndices[PolyIndexA], TempPolysIndices[PolyIndexB], GlobalVertices, PolyMergeInfo);
-						
-						//If a mergeable pair is found, store its index and merging data
-						//At the end the polygons with the longest merging edge will be saved 
-						if (PolyMergeInfo.EdgeLenghtSqrt > LongestMergeEdge)
-						{
-							LongestMergeEdge = PolyMergeInfo.EdgeLenghtSqrt;
-							BestPolyA = PolyIndexA;
-							PolyAVertIndex = PolyMergeInfo.StartingSharedIndexA;
-							BestPolyB = PolyIndexB;
-							PolyBVertIndex = PolyMergeInfo.StartingSharedIndexB;
-						}
-					}
+					RemoveCollinearIndices(TempPolysIndices, GlobalVertices);
+					PerformPolygonMerging(TempPolysIndices, GlobalVertices, PolyCount);
 				}
-
-				//If no merging edge is found, exit the loop
-				if (LongestMergeEdge <= 0)
-				{
-					break;
-				}
-
-				//Add to the first valid merging polygon found, the missing indices from the second one
-				for (int Index = 0; Index < TempPolysIndices[BestPolyB].Num(); Index++)
-				{
-					if (!TempPolysIndices[BestPolyA].Contains(TempPolysIndices[BestPolyB][Index]))
-					{
-						TempPolysIndices[BestPolyA].Add(TempPolysIndices[BestPolyB][Index]);
-					}
-				}
-
-				//Sort the indices of the poly to make sure they are sequential
-				//TODO: Currently there's an issue when a region connected to other 2 is processed after the connected 
-				//as the vertices disposition in the contour is not sequential and this create incorrect polygons 
-				TempPolysIndices[BestPolyA].Sort();
-
-				//Remove the second polygon indices as they are not needed anymore
-				TempPolysIndices.RemoveAt(BestPolyB);
-
-				//Decrease the numbers of polygon
-				PolyCount--;
 			}
 		}
 
@@ -243,12 +196,13 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour)
 			}
 
 			GlobalPolys.Add(NULL_INDEX);
+			GlobalRegions.Add(ContoursData[ContourIndex].RegionID);
 		}
 
 		TotalPolyCount += PolyCount;
 	}
 
-	DrawDebugPolyMeshPolys(GlobalVertices, GlobalPolys);
+	/*DrawDebugPolyMeshPolys(GlobalVertices, GlobalPolys);*/
 }
 
 int APolygonMesh::Triangulate(TArray<FVector>& Vertices, TArray<FTriangleData>& Indices, TArray<int>& Triangles)
@@ -353,6 +307,93 @@ int APolygonMesh::Triangulate(TArray<FVector>& Vertices, TArray<FTriangleData>& 
 
 }
 
+void APolygonMesh::PerformPolygonMerging(TArray<TArray<int>>& PolysIndices, TArray<FVector>& Vertices, int& PolyTotalCount)
+{
+	while (true)
+	{
+		FPolygonMergeData PolyMergeInfo;
+		float LongestMergeEdge = -1.f;
+		int BestPolyA = -1;
+		int BestPolyB = -1;
+		int PolyAVertIndex = -1;
+		int PolyBVertIndex = -1;
+
+		//Iterate through all the indices of consecutive polygons, checking if they are mergeable
+		for (int PolyIndexA = 0; PolyIndexA < PolysIndices.Num() - 1; PolyIndexA++)
+		{
+			for (int PolyIndexB = PolyIndexA + 1; PolyIndexB < PolysIndices.Num(); PolyIndexB++)
+			{
+				GetPolyMergeInfo(PolysIndices[PolyIndexA], PolysIndices[PolyIndexB], Vertices, PolyMergeInfo);
+
+				//If a mergeable pair is found, store its index and merging data
+				//At the end the polygons with the longest merging edge will be saved 
+				if (PolyMergeInfo.EdgeLenghtSqrt > LongestMergeEdge)
+				{
+					LongestMergeEdge = PolyMergeInfo.EdgeLenghtSqrt;
+					BestPolyA = PolyIndexA;
+					PolyAVertIndex = PolyMergeInfo.StartingSharedIndexA;
+					BestPolyB = PolyIndexB;
+					PolyBVertIndex = PolyMergeInfo.StartingSharedIndexB;
+				}
+			}
+		}
+
+		//If no merging edge is found, exit the loop
+		if (LongestMergeEdge <= 0)
+		{
+			break;
+		}
+
+		//Add to the first valid merging polygon found, the missing indices from the second one
+		for (int Index = 0; Index < PolysIndices[BestPolyB].Num(); Index++)
+		{
+			if (!PolysIndices[BestPolyA].Contains(PolysIndices[BestPolyB][Index]))
+			{
+				PolysIndices[BestPolyA].Add(PolysIndices[BestPolyB][Index]);
+			}
+		}
+
+		//Sort the indices of the poly to make sure they are sequential
+		//TODO: Currently there's an issue when a region connected to other 2 is processed after the connected 
+		//as the vertices disposition in the contour is not sequential and this create incorrect polygons 
+		PolysIndices[BestPolyA].Sort();
+
+		//Remove the second polygon indices as they are not needed anymore
+		PolysIndices.RemoveAt(BestPolyB);
+
+		//Decrease the numbers of polygon
+		PolyTotalCount--;
+	}
+}
+
+void APolygonMesh::RemoveCollinearIndices(TArray<TArray<int>>& PolysIndices, TArray<FVector>& Vertices)
+{
+	for (int Index = 0; Index < PolysIndices.Num(); Index++)
+	{
+		int PolygonTotalIndices = PolysIndices[Index].Num();
+
+		for (int VertexIndex = 0; VertexIndex < PolygonTotalIndices;)
+		{
+			FVector Vertex = Vertices[PolysIndices[Index][VertexIndex]];
+			FVector VertexPlusOne = Vertices[PolysIndices[Index][GetNextArrayIndex(VertexIndex, PolygonTotalIndices)]];
+			FVector VertexMinusOne = Vertices[PolysIndices[Index][GetPreviousArrayIndex(VertexIndex, PolygonTotalIndices)]];
+
+			float Distance1Curr = FVector::Dist(Vertex, VertexMinusOne);
+			float Distance2Curr = FVector::Dist(Vertex, VertexPlusOne);
+			float Distance12 = FVector::Dist(VertexMinusOne, VertexPlusOne);
+
+			if ((Distance1Curr + Distance2Curr) == Distance12)
+			{
+				PolysIndices[Index].RemoveAt(VertexIndex);
+				PolygonTotalIndices--;
+				continue;
+			}
+
+			VertexIndex++;
+		}
+	}
+}
+
 void APolygonMesh::GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& PolyIndicesB, TArray<FVector>& Vertices, FPolygonMergeData& MergingInfo)
 {
 	MergingInfo.EdgeLenghtSqrt = -1.f;
@@ -427,6 +468,28 @@ void APolygonMesh::GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& Poly
 	float SharedEdgeL = FVector::DistSquared(Vertices[SharedVertexMinus], Vertices[SharedVertex]);
 	MergingInfo.EdgeLenghtSqrt = SharedEdgeL;
 
+}
+
+void APolygonMesh::BuildEdgeAdjacencyData(TArray<FVector>& Vertices, TArray<int>& PolyIndices, int PolyCount)
+{
+	int VertCount = Vertices.Num();
+
+	int MaxEdgeCount = PolyCount * MaxVertexPerPoly;
+	
+	TArray<int> Edges;
+	Edges.SetNum(MaxEdgeCount * 4);
+	int EdgeCount = 0;
+
+	TArray<int> StartEdge;
+	StartEdge.SetNum(VertCount);
+
+	for (int Index = 0; Index < StartEdge.Num(); Index++)
+	{
+		StartEdge[Index] = NULL_INDEX;
+	}
+
+	TArray<int> NextEdge;
+	NextEdge.SetNum(MaxEdgeCount);
 }
 
 int APolygonMesh::GetPolyVertCount(int PolyStartingIndex, TArray<int>& PolygonIndices)
@@ -594,6 +657,7 @@ void APolygonMesh::DrawDebugPolyMeshPolys(const TArray<FVector>& Vertices, const
 		{
 			int VertexIndex = Polys[Index];
 
+			DrawDebugSphere(GetWorld(), Vertices[VertexIndex], 4.f, 2.f, FColor::Blue, false, 20.f, 0.f, 2.f);
 			/*ATextRenderActor* Text = GetWorld()->SpawnActor<ATextRenderActor>(Vertices[VertexIndex], FRotator(0.f, 180.f, 0.f), SpawnInfo);
 			Text->GetTextRender()->SetText(FString::FromInt(VertexIndex));
 			Text->GetTextRender()->SetTextRenderColor(FColor::Red);*/

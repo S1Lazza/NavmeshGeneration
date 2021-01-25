@@ -82,7 +82,11 @@ void ANavMeshGenerator::GenerateNavmesh()
 	AContour* Contour = GetWorld()->SpawnActor<AContour>(GetActorLocation(), FRotator(0.f, 0.f, 0.f), SpawnInfo);
 	APolygonMesh* PolygonMesh = GetWorld()->SpawnActor<APolygonMesh>(GetActorLocation(), FRotator(0.f, 0.f, 0.f), SpawnInfo);
 
-	SolidHF->DefineFieldsBounds(GetActorLocation(), BoxBounds->GetScaledBoxExtent());
+	FVector BoxBoundCoord = BoxBounds->GetScaledBoxExtent();
+	float MaxCoord = FMath::Max(BoxBoundCoord.X, BoxBoundCoord.Y);
+	FVector MaxBoxBoundsCoord(MaxCoord, MaxCoord, BoxBoundCoord.Z);
+
+	SolidHF->DefineFieldsBounds(GetActorLocation(), MaxBoxBoundsCoord);
 
 	for (UStaticMeshComponent* Mesh : Geometries)
 	{
@@ -131,8 +135,8 @@ void ANavMeshGenerator::CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield,
 		OpenHeightfield->GenerateRegions();
 
 		//TODO: There's an infinite loop when the MinUnconnectedRegion parameter is set to 0 or 1, check why
-		OpenHeightfield->HandleSmallRegions();
-		OpenHeightfield->DrawDebugRegions(false, false);
+		/*OpenHeightfield->HandleSmallRegions();*/
+		/*OpenHeightfield->DrawDebugRegions(false, true);*/
 	}
 }
 

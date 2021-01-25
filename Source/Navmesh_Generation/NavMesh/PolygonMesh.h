@@ -69,13 +69,26 @@ public:
 	int SplitContourDataByRegion(const AContour* Contour);
 
 	//Generate the polygon mesh from the contour data provided
-	void GeneratePolygonMesh(const AContour* Contour);
+	void GeneratePolygonMesh(const AContour* Contour, bool PerformRecursiveMerging = false, int NumberOfRecursion = 0);
 
 	//Attempt to triangluate a polygon based on the vertex and indices data provided
 	//Return the total number of triangles generate, negative number if the generation fails
 	int Triangulate(TArray<FVector>& Vertices, TArray<FTriangleData>& Indices, TArray<int>& Triangles);
 
+	//Merge the valid triangles into larger polygons, only executed if MaxVertexPOerPoly > 3
+	void PerformPolygonMerging(TArray<TArray<int>>& PolysIndices, TArray<FVector>& Vertices, int& PolyTotalCount);
+
+	//During the merging can happen that some indices of a polygon refer to vertices that are collinear and not really needed for keeping the polygon shape
+	//This indices can be safely removed and an additional merging can be done afterwards to additionally reduce the number of polygons
+	//The enabling of this option and the number of times to perform the operation is controlled by the PerformRecursiveMerging and NumberOfRecursion variables
+	//Inside the GeneratePolygonMesh method
+	void RemoveCollinearIndices(TArray<TArray<int>>& PolysIndices, TArray<FVector>& Vertices);
+
+	//Store the informtation relative to the polygon that can be merged and their shared edge
 	void GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& PolyIndicesB, TArray<FVector>& Vertices, FPolygonMergeData& MergingInfo);
+
+	//Create connections between the adjacent shared edges
+	void BuildEdgeAdjacencyData(TArray<FVector>& Vertices, TArray<int>& PolyIndices, int PolyCount);
 
 	int GetPolyVertCount(int PolyStartingIndex, TArray<int>& PolygonIndices);
 
