@@ -69,7 +69,7 @@ public:
 	int SplitContourDataByRegion(const AContour* Contour);
 
 	//Generate the polygon mesh from the contour data provided
-	void GeneratePolygonMesh(const AContour* Contour, bool PerformRecursiveMerging = false, int NumberOfRecursion = 0);
+	void GeneratePolygonMesh(const AContour* Contour, const bool PerformRecursiveMerging = false, const int NumberOfRecursion = 0);
 
 	//Attempt to triangluate a polygon based on the vertex and indices data provided
 	//Return the total number of triangles generate, negative number if the generation fails

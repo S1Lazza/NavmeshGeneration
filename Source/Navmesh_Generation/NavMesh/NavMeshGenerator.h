@@ -3,57 +3,54 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
 #include "Components/BoxComponent.h"
-#include "NavMeshGenerator.generated.h"
+#include "AI/NavDataGenerator.h"
+#include "Math/Box.h"
+#include "AI/Navigation/NavigationTypes.h"
 
 class UBillboardComponent;
 class ASolidHeightfield;
 class AOpenHeightfield;
 class AContour;
 class APolygonMesh;
+class ACustomNavigationData;
 
-UCLASS()
-class NAVMESH_GENERATION_API ANavMeshGenerator : public AActor
+
+class NAVMESH_GENERATION_API FNavMeshGenerator : public FNavDataGenerator
 {
-	GENERATED_BODY()
-	
 public:	
 	//Sets default values for this actor's properties
-	ANavMeshGenerator();
+	FNavMeshGenerator() {};
+	FNavMeshGenerator(ACustomNavigationData* InNavmesh);
 
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	virtual void TickAsyncBuild(float DeltaSeconds) override;
 
 	//Gather all the valid geometry in the level, meaning the overlapping ones, world static, that can affect navigation
 	void GatherValidOverlappingGeometries();
 
-	//Generate the navmesh
+	////Generate the navmesh
 	void GenerateNavmesh();
 
-	//Create the solid heightfield and return the voxel data
+	////Create the solid heightfield and return the voxel data
 	void CreateSolidHeightfield(ASolidHeightfield* SolidHeightfield, const UStaticMeshComponent* Mesh);
 
-	//Create an open heightfield based on the data retrieved from the solid one and return it
+	////Create an open heightfield based on the data retrieved from the solid one and return it
 	void CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield, const ASolidHeightfield* SolidHeightfield, bool PerformFullGeneration);
 
 	void CreateContour(AContour* Contour, const AOpenHeightfield* OpenHeightfield);
 
 	void CreatePolygonMesh(APolygonMesh* PolyMesh, const AContour* Contour, const AOpenHeightfield* OpenHeightfield);
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	ACustomNavigationData* NavigationMesh;
 
 private:
 	//Intialize the needed components listed below
 	void InitializeComponents();
 
-	UPROPERTY(VisibleAnywhere)
-	UBoxComponent* BoxBounds;
-
 	UPROPERTY(VisibleDefaultsOnly)
 	UBillboardComponent* Icon;
+
+	FBox NavBounds;
 
 	TArray<UStaticMeshComponent*> Geometries;
 };

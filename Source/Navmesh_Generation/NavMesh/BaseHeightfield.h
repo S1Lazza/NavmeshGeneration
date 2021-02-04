@@ -41,10 +41,10 @@ public:
 	int Height;
 
 	//Size of the single cells (voxels) in which the heightfiels is subdivided, the cells are squared
-	float CellSize = 15.f;
+	float CellSize = 40.f;
 
 	//Height of the single cells (voxels) in which the heightfiels is subdivided
-	float CellHeight = 15.f;
+	float CellHeight = 40.f;
 
 	//Min coordinates of the heightfield derived from the bounds of the navmesh area
 	FVector BoundMin;

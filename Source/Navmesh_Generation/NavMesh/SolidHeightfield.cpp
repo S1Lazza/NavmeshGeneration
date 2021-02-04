@@ -177,7 +177,7 @@ void ASolidHeightfield::VoxelizeTriangles(const TArray<FVector>& Vertices, const
 					FVector CellMaxDebug = FVector(CellMaxCoord.X, CellMaxCoord.Y, BoundMin.Z + CellSize * It + CellSize);
 
 					UUtilityDebug::DrawMinMaxBox(GetWorld(), CellMinDebug, CellMaxDebug, FColor::Green, 20.0f, 0.5f);
-				}	*/		
+				}		*/	
 			}
 		}
 	}

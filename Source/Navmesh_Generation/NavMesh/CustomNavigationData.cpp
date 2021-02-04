@@ -1,0 +1,29 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#include "NavMeshGenerator.h"
+#include "CustomNavigationData.h"
+
+ACustomNavigationData::ACustomNavigationData()
+{
+    FindPathImplementation = FindPath;
+}
+
+FPathFindingResult ACustomNavigationData::FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)
+{
+    GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("Path requested"));
+    return FPathFindingResult();
+}
+
+void ACustomNavigationData::ConditionalConstructGenerator()
+{
+    FNavMeshGenerator NavGenerator(this);
+    NavGenerator.GatherValidOverlappingGeometries();
+    NavGenerator.GenerateNavmesh();
+    GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("GeneratorCreated"));
+}
+
+UPrimitiveComponent* ACustomNavigationData::ConstructRenderingComponent()
+{
+    GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("Update Display Debug"));
+    return nullptr;
+}

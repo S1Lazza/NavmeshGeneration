@@ -8,28 +8,23 @@
 #include "OpenHeightfield.h"
 #include "Contour.h"
 #include "PolygonMesh.h"
+#include "CustomNavigationData.h"
 #include "../Utility/UtilityGeneral.h"
 #include "../Utility/UtilityDebug.h"
 #include "Kismet/KismetSystemLibrary.h"
-
-// Sets default values
-ANavMeshGenerator::ANavMeshGenerator()
+////
+//// Sets default values
+FNavMeshGenerator::FNavMeshGenerator(ACustomNavigationData* InNavmesh)
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
-	InitializeComponents();
+	NavigationMesh = InNavmesh;
+	NavBounds = NavigationMesh->GetNavigableBounds()[0];
 }
 
-// Called when the game starts or when spawned
-void ANavMeshGenerator::BeginPlay()
+void FNavMeshGenerator::TickAsyncBuild(float DeltaSeconds)
 {
-	Super::BeginPlay();
-	GatherValidOverlappingGeometries();
-	GenerateNavmesh();
 }
 
-void ANavMeshGenerator::GatherValidOverlappingGeometries()
+void FNavMeshGenerator::GatherValidOverlappingGeometries()
 {
 	TArray<AActor*> ValidGeometries;
 
@@ -38,10 +33,9 @@ void ANavMeshGenerator::GatherValidOverlappingGeometries()
 	ObjectTypes.Add(EObjectTypeQuery::ObjectTypeQuery1);
 	
 	TArray<AActor*> ActorsToIgnore;
-	ActorsToIgnore.Add(this);
 
 	//Check which actors are overlapping with the box based on the parameters specified
-	UKismetSystemLibrary::ComponentOverlapActors(BoxBounds, this->GetTransform(), ObjectTypes, nullptr, ActorsToIgnore, ValidGeometries);
+	UKismetSystemLibrary::BoxOverlapActors(NavigationMesh->GetWorld(), NavBounds.GetCenter(), NavBounds.GetExtent(), ObjectTypes, nullptr, ActorsToIgnore, ValidGeometries);
 
 	for (AActor*& actor : ValidGeometries)
 	{
@@ -66,27 +60,30 @@ void ANavMeshGenerator::GatherValidOverlappingGeometries()
 	}
 }
 
-void ANavMeshGenerator::GenerateNavmesh()
+void FNavMeshGenerator::GenerateNavmesh()
 {
 	if (Geometries.Num() == 0)
 	{
 		return;
 	}
 
+	UWorld* World = NavigationMesh->GetWorld();
+	FVector SpawnLocation = NavBounds.GetCenter();
+
 	//Initialize spawn parameters, needed to create a new instance of the actors (the always spawn flag is used for safety purposes)
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	ASolidHeightfield* SolidHF = GetWorld()->SpawnActor<ASolidHeightfield>(GetActorLocation(), FRotator(0.f, 0.f, 0.f), SpawnInfo);
-	AOpenHeightfield* OpenHF = GetWorld()->SpawnActor<AOpenHeightfield>(GetActorLocation(), FRotator(0.f, 0.f, 0.f), SpawnInfo);
-	AContour* Contour = GetWorld()->SpawnActor<AContour>(GetActorLocation(), FRotator(0.f, 0.f, 0.f), SpawnInfo);
-	APolygonMesh* PolygonMesh = GetWorld()->SpawnActor<APolygonMesh>(GetActorLocation(), FRotator(0.f, 0.f, 0.f), SpawnInfo);
+	ASolidHeightfield* SolidHF = World->SpawnActor<ASolidHeightfield>(SpawnLocation, FRotator(0.f, 0.f, 0.f), SpawnInfo);
+	AOpenHeightfield* OpenHF = World->SpawnActor<AOpenHeightfield>(SpawnLocation, FRotator(0.f, 0.f, 0.f), SpawnInfo);
+	AContour* Contour = World->SpawnActor<AContour>(SpawnLocation, FRotator(0.f, 0.f, 0.f), SpawnInfo);
+	APolygonMesh* PolygonMesh = World->SpawnActor<APolygonMesh>(SpawnLocation, FRotator(0.f, 0.f, 0.f), SpawnInfo);
 
-	FVector BoxBoundCoord = BoxBounds->GetScaledBoxExtent();
+	FVector BoxBoundCoord = NavBounds.GetExtent();
 	float MaxCoord = FMath::Max(BoxBoundCoord.X, BoxBoundCoord.Y);
 	FVector MaxBoxBoundsCoord(MaxCoord, MaxCoord, BoxBoundCoord.Z);
 
-	SolidHF->DefineFieldsBounds(GetActorLocation(), MaxBoxBoundsCoord);
+	SolidHF->DefineFieldsBounds(SpawnLocation, MaxBoxBoundsCoord);
 
 	for (UStaticMeshComponent* Mesh : Geometries)
 	{
@@ -98,7 +95,7 @@ void ANavMeshGenerator::GenerateNavmesh()
 	CreatePolygonMesh(PolygonMesh, Contour, OpenHF);
 }
 
-void ANavMeshGenerator::CreateSolidHeightfield(ASolidHeightfield* SolidHeightfield, const UStaticMeshComponent* Mesh)
+void FNavMeshGenerator::CreateSolidHeightfield(ASolidHeightfield* SolidHeightfield, const UStaticMeshComponent* Mesh)
 {
 	TArray<FVector> Vertices;
 	TArray<int> Indices;
@@ -121,7 +118,7 @@ void ANavMeshGenerator::CreateSolidHeightfield(ASolidHeightfield* SolidHeightfie
 	/*SolidHeightfield->DrawDebugSpanData();*/
 }
 
-void ANavMeshGenerator::CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield, const ASolidHeightfield* SolidHeightfield, bool PerformFullGeneration)
+void FNavMeshGenerator::CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield, const ASolidHeightfield* SolidHeightfield, bool PerformFullGeneration)
 {
 	OpenHeightfield->Init(SolidHeightfield);
 	OpenHeightfield->FindOpenSpanData(SolidHeightfield);
@@ -140,36 +137,15 @@ void ANavMeshGenerator::CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield,
 	}
 }
 
-void ANavMeshGenerator::CreateContour(AContour* Contour, const AOpenHeightfield* OpenHeightfield)
+void FNavMeshGenerator::CreateContour(AContour* Contour, const AOpenHeightfield* OpenHeightfield)
 {
 	Contour->Init(OpenHeightfield);
 	Contour->GenerateContour(OpenHeightfield);
 }
 
-void ANavMeshGenerator::CreatePolygonMesh(APolygonMesh* PolyMesh, const AContour* Contour, const AOpenHeightfield* OpenHeightfield)
+void FNavMeshGenerator::CreatePolygonMesh(APolygonMesh* PolyMesh, const AContour* Contour, const AOpenHeightfield* OpenHeightfield)
 {
 	PolyMesh->Init(OpenHeightfield);
 	PolyMesh->GeneratePolygonMesh(Contour);
-}
-
-void ANavMeshGenerator::InitializeComponents()
-{
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
-	SetRootComponent(RootComponent);
-	RootComponent->bEditableWhenInherited = true;
-
-	BoxBounds = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxBounds"));
-	BoxBounds->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
-	BoxBounds->AttachTo(RootComponent);
-
-	Icon = CreateDefaultSubobject<UBillboardComponent>(TEXT("Icon"));
-	Icon->SetupAttachment(RootComponent);
-}
-
-// Called every frame
-void ANavMeshGenerator::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
 }
 
