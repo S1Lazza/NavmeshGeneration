@@ -67,6 +67,8 @@ public:
 	  Return true if the data is successfully added, otherwise false*/
 	bool AddSpanData(int WidthIndex, int DepthIndex, int HeightIndexMin, int HeightIndexMax, PolygonType Type);
 
+	void FreeSpanData();
+
 	//Draw the debug data relative to the spans composing the geometry
 	void DrawDebugSpanData();
 

@@ -46,9 +46,23 @@ struct FPolygonMergeData
 	//The index of the start of the shared edge in polygon A
 	int StartingSharedIndexA = 0;
 
-	//The index of the start of the shared edge in polygon A
+	//The index of the start of the shared edge in polygon B
 	int StartingSharedIndexB = 0;
 };
+
+USTRUCT()
+struct FPolygonData
+{
+	GENERATED_USTRUCT_BODY()
+
+	TArray<FVector> Vertices;
+
+	FVector Centroid = FVector(0.f, 0.f, 0.f);
+
+	TArray<FPolygonData*> AdjacentPolygonList;
+};
+
+
 
 UCLASS()
 class NAVMESH_GENERATION_API APolygonMesh : public AActor
@@ -88,7 +102,10 @@ public:
 	void GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& PolyIndicesB, TArray<FVector>& Vertices, FPolygonMergeData& MergingInfo);
 
 	//Create connections between the adjacent shared edges
-	void BuildEdgeAdjacencyData(TArray<FVector>& Vertices, TArray<int>& PolyIndices, int PolyCount);
+	void BuildEdgeAdjacencyData(TArray<FVector>& Vertices, TArray<int>& PolyIndices);
+
+	//Find the centroid of the polygons created
+	void FindPolygonCentroid(FPolygonData& Polygon);
 
 	int GetPolyVertCount(int PolyStartingIndex, TArray<int>& PolygonIndices);
 
@@ -152,4 +169,6 @@ private:
 	int MaxVertexPerPoly = 6;
 
 	TArray<FContourData> ContoursData;
+
+	TArray<FPolygonData> ResultingPoly;
 };

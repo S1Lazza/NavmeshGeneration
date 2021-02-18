@@ -898,6 +898,11 @@ void AOpenHeightfield::FindRegionConnections(UOpenSpan* Span, int NeighborDirect
 	}
 }
 
+void AOpenHeightfield::FreeSpanData()
+{
+	Spans.Empty();
+}
+
 void AOpenHeightfield::DrawDebugSpanData()
 {
 	for (auto& Span : Spans)

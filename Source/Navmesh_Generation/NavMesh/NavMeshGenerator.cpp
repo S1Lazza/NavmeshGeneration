@@ -20,8 +20,27 @@ FNavMeshGenerator::FNavMeshGenerator(ACustomNavigationData* InNavmesh)
 	NavBounds = NavigationMesh->GetNavigableBounds()[0];
 }
 
-void FNavMeshGenerator::TickAsyncBuild(float DeltaSeconds)
+bool FNavMeshGenerator::RebuildAll()
 {
+	if (NavigationMesh->GetGenerator())
+	{
+		GatherValidOverlappingGeometries();
+		GenerateNavmesh();
+		return true;
+	}
+
+	return false;
+}
+
+void FNavMeshGenerator::RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas)
+{
+	//Naive implemetation as all the navmesh is rebuilt when a geometry is moved in the level
+	//TODO: Move the enabling in a different place, ideally inside a controller with all the other parameters
+	if (NavigationMesh->GetGenerator() && EnableDirtyAreasRebuild)
+	{
+		GatherValidOverlappingGeometries();
+		GenerateNavmesh();
+	}
 }
 
 void FNavMeshGenerator::GatherValidOverlappingGeometries()
@@ -69,6 +88,8 @@ void FNavMeshGenerator::GenerateNavmesh()
 
 	UWorld* World = NavigationMesh->GetWorld();
 	FVector SpawnLocation = NavBounds.GetCenter();
+
+	ClearDebugLines(World);
 
 	//Initialize spawn parameters, needed to create a new instance of the actors (the always spawn flag is used for safety purposes)
 	FActorSpawnParameters SpawnInfo;
@@ -118,7 +139,7 @@ void FNavMeshGenerator::CreateSolidHeightfield(ASolidHeightfield* SolidHeightfie
 	/*SolidHeightfield->DrawDebugSpanData();*/
 }
 
-void FNavMeshGenerator::CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield, const ASolidHeightfield* SolidHeightfield, bool PerformFullGeneration)
+void FNavMeshGenerator::CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield, ASolidHeightfield* SolidHeightfield, bool PerformFullGeneration)
 {
 	OpenHeightfield->Init(SolidHeightfield);
 	OpenHeightfield->FindOpenSpanData(SolidHeightfield);
@@ -134,18 +155,31 @@ void FNavMeshGenerator::CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield,
 		//TODO: There's an infinite loop when the MinUnconnectedRegion parameter is set to 0 or 1, check why
 		/*OpenHeightfield->HandleSmallRegions();*/
 		/*OpenHeightfield->DrawDebugRegions(false, true);*/
+		SolidHeightfield->FreeSpanData();
 	}
 }
 
-void FNavMeshGenerator::CreateContour(AContour* Contour, const AOpenHeightfield* OpenHeightfield)
+void FNavMeshGenerator::CreateContour(AContour* Contour, AOpenHeightfield* OpenHeightfield)
 {
 	Contour->Init(OpenHeightfield);
 	Contour->GenerateContour(OpenHeightfield);
+	OpenHeightfield->FreeSpanData();
 }
 
 void FNavMeshGenerator::CreatePolygonMesh(APolygonMesh* PolyMesh, const AContour* Contour, const AOpenHeightfield* OpenHeightfield)
 {
 	PolyMesh->Init(OpenHeightfield);
-	PolyMesh->GeneratePolygonMesh(Contour);
+	PolyMesh->GeneratePolygonMesh(Contour, true, 1);
+}
+
+void FNavMeshGenerator::ClearDebugLines(UWorld* CurrentWorld)
+{
+	FlushPersistentDebugLines(CurrentWorld);
+}
+
+void FNavMeshGenerator::SetNavmesh(ACustomNavigationData* NavMesh)
+{
+	NavigationMesh = NavMesh;
+	NavBounds = NavigationMesh->GetNavigableBounds()[0];
 }
 

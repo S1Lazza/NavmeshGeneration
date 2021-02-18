@@ -23,7 +23,9 @@ public:
 	FNavMeshGenerator() {};
 	FNavMeshGenerator(ACustomNavigationData* InNavmesh);
 
-	virtual void TickAsyncBuild(float DeltaSeconds) override;
+	virtual bool RebuildAll() override;
+
+	virtual void RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas);
 
 	//Gather all the valid geometry in the level, meaning the overlapping ones, world static, that can affect navigation
 	void GatherValidOverlappingGeometries();
@@ -35,22 +37,19 @@ public:
 	void CreateSolidHeightfield(ASolidHeightfield* SolidHeightfield, const UStaticMeshComponent* Mesh);
 
 	////Create an open heightfield based on the data retrieved from the solid one and return it
-	void CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield, const ASolidHeightfield* SolidHeightfield, bool PerformFullGeneration);
+	void CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield, ASolidHeightfield* SolidHeightfield, bool PerformFullGeneration);
 
-	void CreateContour(AContour* Contour, const AOpenHeightfield* OpenHeightfield);
+	void CreateContour(AContour* Contour, AOpenHeightfield* OpenHeightfield);
 
 	void CreatePolygonMesh(APolygonMesh* PolyMesh, const AContour* Contour, const AOpenHeightfield* OpenHeightfield);
 
-	ACustomNavigationData* NavigationMesh;
+	void ClearDebugLines(UWorld* CurrentWorld);
+
+	void SetNavmesh(ACustomNavigationData* NavMesh);
 
 private:
-	//Intialize the needed components listed below
-	void InitializeComponents();
-
-	UPROPERTY(VisibleDefaultsOnly)
-	UBillboardComponent* Icon;
-
 	FBox NavBounds;
-
 	TArray<UStaticMeshComponent*> Geometries;
+	ACustomNavigationData* NavigationMesh;
+	bool EnableDirtyAreasRebuild = false;
 };

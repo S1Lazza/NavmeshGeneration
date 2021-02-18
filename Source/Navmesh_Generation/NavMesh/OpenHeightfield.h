@@ -75,6 +75,8 @@ public:
 
 	//Traverse the edge of a region and add all the neighbor connection found to the region connection array
 	void FindRegionConnections(UOpenSpan* Span, int NeighborDirection, TArray<int>& RegionConnection);
+	
+	void FreeSpanData();
 
 	//Draw the open span data
 	void DrawDebugSpanData();

@@ -518,6 +518,11 @@ bool ASolidHeightfield::AddSpanData(int WidthIndex, int DepthIndex, int HeightIn
 	return false;
 }
 
+void ASolidHeightfield::FreeSpanData()
+{
+	Spans.Empty();
+}
+
 void ASolidHeightfield::DrawDebugSpanData()
 {
 	//Iterate through all the cells

@@ -112,7 +112,7 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 		if (ContoursData[ContourIndex].Vertices.Num() < 3)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("Polygon generation failure: Contour has too few vertices."));
-			return;
+			continue;
 		}
 
 		//Reset all the temp arrays
@@ -187,7 +187,7 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 		}
 
 		//Add to the GlobalPolys container the single polygon indices, split by a NULL_INDEX value
-		//TODO: To evaluate if this step is needed
+		//TODO: To evaluate if this step is neededw
 		for (int Poly = 0; Poly < TempPolysIndices.Num(); Poly++)
 		{
 			for (int PolyIndex = 0; PolyIndex < TempPolysIndices[Poly].Num(); PolyIndex++)
@@ -202,7 +202,14 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 		TotalPolyCount += PolyCount;
 	}
 
-	/*DrawDebugPolyMeshPolys(GlobalVertices, GlobalPolys);*/
+	DrawDebugPolyMeshPolys(GlobalVertices, GlobalPolys);
+
+	//Test code for pathfinding implementation
+	//TODO: Implement a way to build adjacent data using the index and vertices array created above
+	BuildEdgeAdjacencyData(GlobalVertices, GlobalPolys);
+
+	TArray<FPolygonData> Tests = ResultingPoly;
+	int Test = 0;
 }
 
 int APolygonMesh::Triangulate(TArray<FVector>& Vertices, TArray<FTriangleData>& Indices, TArray<int>& Triangles)
@@ -470,26 +477,105 @@ void APolygonMesh::GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& Poly
 
 }
 
-void APolygonMesh::BuildEdgeAdjacencyData(TArray<FVector>& Vertices, TArray<int>& PolyIndices, int PolyCount)
+void APolygonMesh::BuildEdgeAdjacencyData(TArray<FVector>& Vertices, TArray<int>& PolyIndices)
 {
-	int VertCount = Vertices.Num();
-
-	int MaxEdgeCount = PolyCount * MaxVertexPerPoly;
-	
-	TArray<int> Edges;
-	Edges.SetNum(MaxEdgeCount * 4);
-	int EdgeCount = 0;
-
-	TArray<int> StartEdge;
-	StartEdge.SetNum(VertCount);
-
-	for (int Index = 0; Index < StartEdge.Num(); Index++)
+	//Split the arrays data into polygons
+	TArray<FVector> TempArray;
+	for (int Index = 0; Index < PolyIndices.Num(); Index++)
 	{
-		StartEdge[Index] = NULL_INDEX;
+		if (PolyIndices[Index] != NULL_INDEX)
+		{
+			int VertexIndex = PolyIndices[Index];
+			TempArray.Add(Vertices[VertexIndex]);
+		}
+		else
+		{
+			if (TempArray.Num() > 0)
+			{
+				FPolygonData NewPoly;
+				NewPoly.Vertices = TempArray;
+				ResultingPoly.Add(NewPoly);
+				TempArray.Empty();
+			}
+		}
 	}
 
-	TArray<int> NextEdge;
-	NextEdge.SetNum(MaxEdgeCount);
+	//Search adjacent polygons
+	for (int PolyIndex1 = 0; PolyIndex1 < ResultingPoly.Num(); PolyIndex1++)
+	{
+		FindPolygonCentroid(ResultingPoly[PolyIndex1]);
+
+		int TotalPolyVertices1 = ResultingPoly[PolyIndex1].Vertices.Num();
+		FVector Index1A;
+		FVector Index1B;
+		FVector Index2A;
+		FVector Index2B;
+
+		//Find the edges of the first polygon
+		for (int PolyVertex1 = 0; PolyVertex1 < TotalPolyVertices1; PolyVertex1++)
+		{
+			Index1A = ResultingPoly[PolyIndex1].Vertices[PolyVertex1];
+			Index1B = ResultingPoly[PolyIndex1].Vertices[(PolyVertex1 + 1) % TotalPolyVertices1];
+
+			//Iterate through all the other polygons
+			for (int PolyIndex2 = 0; PolyIndex2 < ResultingPoly.Num(); PolyIndex2++)
+			{
+				if (PolyIndex2 != PolyIndex1)
+				{
+					int TotalPolyVertices2 = ResultingPoly[PolyIndex2].Vertices.Num();
+
+					//Find the edges of the second polygons and compare them to the first one
+					//If equal add the second polygon to the first polygon array of adjacent polygons
+					for (int PolyVertex2 = 0; PolyVertex2 < TotalPolyVertices2; PolyVertex2++)
+					{
+						Index2A = ResultingPoly[PolyIndex2].Vertices[PolyVertex2];
+						Index2B = ResultingPoly[PolyIndex2].Vertices[(PolyVertex2 + 1) % TotalPolyVertices2];
+
+						if ((Index1A == Index2A && Index1B == Index2B) ||
+							(Index1A == Index2B && Index1B == Index2A))
+						{
+							ResultingPoly[PolyIndex1].AdjacentPolygonList.Add(&ResultingPoly[PolyIndex2]);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void APolygonMesh::FindPolygonCentroid(FPolygonData& Polygon)
+{
+	float SignedArea = 0; 
+	int TotalVertices = Polygon.Vertices.Num();
+	FVector Centroid(0.f, 0.f, 0.f);
+	float MinZ = 0.f;
+	float MaxZ = 0.f;
+
+	for (int Index = 0; Index < TotalVertices; Index++)
+	{
+		FVector FirstPoint = Polygon.Vertices[Index];
+		FVector SecondPoint = Polygon.Vertices[(Index + 1) % TotalVertices];
+
+		float TempArea = (FirstPoint.X * SecondPoint.Y) - (FirstPoint.Y * SecondPoint.X);
+		SignedArea += TempArea;
+
+		Centroid.X += (FirstPoint.X + SecondPoint.X) * TempArea;
+		Centroid.Y += (FirstPoint.Y + SecondPoint.Y) * TempArea;
+
+		//TODO: The calculation on the Z axis is done by calculating the mid Z value between the vertices
+		//This is a really approssimative way to calculate it and need a better implementation
+		MinZ = FGenericPlatformMath::Min(FirstPoint.Z, SecondPoint.Z);
+		MaxZ = FGenericPlatformMath::Max(FirstPoint.Z, SecondPoint.Z);
+	}
+
+	SignedArea *= 0.5f;
+	Centroid.X = Centroid.X / (6 * SignedArea);
+	Centroid.Y = Centroid.Y / (6 * SignedArea);
+	Centroid.Z = (MaxZ + MinZ) / 2;
+
+	Polygon.Centroid = Centroid;
+
+	/*DrawDebugSphere(GetWorld(), Centroid, 5.f, 5, FColor::Red, false, 30.f, 30.f, 2.f);*/
 }
 
 int APolygonMesh::GetPolyVertCount(int PolyStartingIndex, TArray<int>& PolygonIndices)

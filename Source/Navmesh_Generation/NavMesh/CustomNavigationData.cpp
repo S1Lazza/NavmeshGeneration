@@ -5,7 +5,7 @@
 
 ACustomNavigationData::ACustomNavigationData()
 {
-    FindPathImplementation = FindPath;
+    /*FindPathImplementation = FindPath;*/
 }
 
 FPathFindingResult ACustomNavigationData::FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)
@@ -16,10 +16,21 @@ FPathFindingResult ACustomNavigationData::FindPath(const FNavAgentProperties& Ag
 
 void ACustomNavigationData::ConditionalConstructGenerator()
 {
-    FNavMeshGenerator NavGenerator(this);
+    if (!NavDataGenerator.IsValid())
+    {
+        //Initialize the generator and the navmesh on the first opening of the editor
+        TSharedPtr<FNavMeshGenerator, ESPMode::ThreadSafe> NewGen(new FNavMeshGenerator());
+        NewGen.Get()->SetNavmesh(this);
+        NavDataGenerator = NewGen;
+
+        NewGen.Get()->GatherValidOverlappingGeometries();
+        NewGen.Get()->GenerateNavmesh();
+    }
+
+   /* FNavMeshGenerator NavGenerator(this);
     NavGenerator.GatherValidOverlappingGeometries();
-    NavGenerator.GenerateNavmesh();
-    GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("GeneratorCreated"));
+    NavGenerator.GenerateNavmesh();*/
+    /*GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("GeneratorCreated"));*/
 }
 
 UPrimitiveComponent* ACustomNavigationData::ConstructRenderingComponent()
