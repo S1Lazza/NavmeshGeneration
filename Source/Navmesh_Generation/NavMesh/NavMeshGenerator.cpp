@@ -12,7 +12,8 @@
 #include "../Utility/UtilityGeneral.h"
 #include "../Utility/UtilityDebug.h"
 #include "Kismet/KismetSystemLibrary.h"
-////
+
+
 //// Sets default values
 FNavMeshGenerator::FNavMeshGenerator(ACustomNavigationData* InNavmesh)
 {
@@ -45,6 +46,9 @@ void FNavMeshGenerator::RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& Di
 
 void FNavMeshGenerator::GatherValidOverlappingGeometries()
 {
+	ClearDebugLines(NavigationMesh->GetWorld());
+	Geometries.Empty();
+
 	TArray<AActor*> ValidGeometries;
 
 	//Query parameters for filtering the overlapping actors, ObjectTypeQuery1 = WorldStatic
@@ -169,7 +173,8 @@ void FNavMeshGenerator::CreateContour(AContour* Contour, AOpenHeightfield* OpenH
 void FNavMeshGenerator::CreatePolygonMesh(APolygonMesh* PolyMesh, const AContour* Contour, const AOpenHeightfield* OpenHeightfield)
 {
 	PolyMesh->Init(OpenHeightfield);
-	PolyMesh->GeneratePolygonMesh(Contour, true, 1);
+	PolyMesh->GeneratePolygonMesh(Contour);
+	PolyMesh->SendDataToNavmesh(NavigationMesh->ResultingPoly);
 }
 
 void FNavMeshGenerator::ClearDebugLines(UWorld* CurrentWorld)

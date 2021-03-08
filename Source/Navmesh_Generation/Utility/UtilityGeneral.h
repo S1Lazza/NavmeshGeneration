@@ -79,7 +79,7 @@ public:
 		{
 			Vertices.Add(IndexedVertices[Indices[It]]);
 		}
-	}	
+	}
 };
 
 /*

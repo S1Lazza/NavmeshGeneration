@@ -5,6 +5,7 @@
 #include "OpenHeightfield.h"
 #include "../Utility/UtilityDebug.h"
 #include "Engine/TextRenderActor.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "../Utility/UtilityGeneral.h"
 #include "Components/TextRenderComponent.h"
 #include "Math/UnrealMathUtility.h"
@@ -83,7 +84,7 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 	int SourceVertexCount = TotalContourVertices;
 	int MaxPossiblePolygons = TotalContourVertices - (Contour->RegionCount * 2);
 	int MaxVertexPerContour = SplitContourDataByRegion(Contour);
-	int TotalVertexCount = 0;
+	int TotalVertexIndexCount = 0;
 	TArray<int> ContourToGlobalIndices;
 	ContourToGlobalIndices.SetNum(MaxVertexPerContour);
 
@@ -92,8 +93,8 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 	*/
 	int TotalPolyCount = 0;
 	int GlobalPolyIndex = 0;
-	TArray<FVector> GlobalVertices;
 	TArray<int> GlobalPolys;
+	TArray<FVector> GlobalVertices;
 	TArray<int> GlobalIndices;
 	TArray<int> GlobalRegions;
 
@@ -137,8 +138,8 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 		}
 
 		//Utility functions to display the contours and the triangles created
-		/*UUtilityDebug::DrawPolygon(GetWorld(), ContoursData[ContourIndex].Vertices, FColor::Red, 20.0f, 1.0f);
-		DrawDebugPolyMeshTriangles(ContoursData[ContourIndex].Vertices, TempTriangles, TriangleCount);*/
+		/*UUtilityDebug::DrawPolygon(GetWorld(), ContoursData[ContourIndex].Vertices, FColor::Red, 20.0f, 1.0f);*/
+		/*DrawDebugPolyMeshTriangles(ContoursData[ContourIndex].Vertices, TempTriangles, PolyCount);*/
 
 		//Iterate through all the contour vertices
 		for (int ContourVertIndex = 0; ContourVertIndex < ContoursData[ContourIndex].Vertices.Num(); ContourVertIndex++)
@@ -147,10 +148,11 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 
 			//Conversion of the contour vertices and indices to global 
 			//Check if a vertex has been already added to the array, if not add it to the array and update the needed variables
+
 			if (!GlobalVertices.Find(ContoursData[ContourIndex].Vertices[ContourVertIndex], GlobalVertIndex))
 			{
-				GlobalVertIndex = TotalVertexCount;
-				TotalVertexCount++;
+				GlobalVertIndex = TotalVertexIndexCount;
+				TotalVertexIndexCount++;
 
 				SetArrayElement(GlobalVertices, ContoursData[ContourIndex].Vertices[ContourVertIndex], GlobalVertIndex);
 			}
@@ -184,6 +186,8 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 					PerformPolygonMerging(TempPolysIndices, GlobalVertices, PolyCount);
 				}
 			}
+
+			RemoveCollinearIndices(TempPolysIndices, GlobalVertices);
 		}
 
 		//Add to the GlobalPolys container the single polygon indices, split by a NULL_INDEX value
@@ -206,10 +210,8 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 
 	//Test code for pathfinding implementation
 	//TODO: Implement a way to build adjacent data using the index and vertices array created above
-	BuildEdgeAdjacencyData(GlobalVertices, GlobalPolys);
-
-	TArray<FPolygonData> Tests = ResultingPoly;
-	int Test = 0;
+	SplitPolygonData(GlobalVertices, GlobalPolys);
+	BuildEdgeAdjacencyData();
 }
 
 int APolygonMesh::Triangulate(TArray<FVector>& Vertices, TArray<FTriangleData>& Indices, TArray<int>& Triangles)
@@ -360,10 +362,7 @@ void APolygonMesh::PerformPolygonMerging(TArray<TArray<int>>& PolysIndices, TArr
 			}
 		}
 
-		//Sort the indices of the poly to make sure they are sequential
-		//TODO: Currently there's an issue when a region connected to other 2 is processed after the connected 
-		//as the vertices disposition in the contour is not sequential and this create incorrect polygons 
-		PolysIndices[BestPolyA].Sort();
+		SortPolygonVertexOrder(Vertices, PolysIndices[BestPolyA]);
 
 		//Remove the second polygon indices as they are not needed anymore
 		PolysIndices.RemoveAt(BestPolyB);
@@ -477,8 +476,10 @@ void APolygonMesh::GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& Poly
 
 }
 
-void APolygonMesh::BuildEdgeAdjacencyData(TArray<FVector>& Vertices, TArray<int>& PolyIndices)
+void APolygonMesh::SplitPolygonData(TArray<FVector>& Vertices, TArray<int>& PolyIndices)
 {
+	int PolyIndex = 0;
+
 	//Split the arrays data into polygons
 	TArray<FVector> TempArray;
 	for (int Index = 0; Index < PolyIndices.Num(); Index++)
@@ -494,17 +495,22 @@ void APolygonMesh::BuildEdgeAdjacencyData(TArray<FVector>& Vertices, TArray<int>
 			{
 				FPolygonData NewPoly;
 				NewPoly.Vertices = TempArray;
+				NewPoly.Index = PolyIndex;
+				NewPoly.Centroid = FindPolygonCentroid(NewPoly.Vertices, true);
 				ResultingPoly.Add(NewPoly);
+				
 				TempArray.Empty();
+				PolyIndex++;
 			}
 		}
 	}
+}
 
+void APolygonMesh::BuildEdgeAdjacencyData()
+{
 	//Search adjacent polygons
 	for (int PolyIndex1 = 0; PolyIndex1 < ResultingPoly.Num(); PolyIndex1++)
 	{
-		FindPolygonCentroid(ResultingPoly[PolyIndex1]);
-
 		int TotalPolyVertices1 = ResultingPoly[PolyIndex1].Vertices.Num();
 		FVector Index1A;
 		FVector Index1B;
@@ -534,7 +540,7 @@ void APolygonMesh::BuildEdgeAdjacencyData(TArray<FVector>& Vertices, TArray<int>
 						if ((Index1A == Index2A && Index1B == Index2B) ||
 							(Index1A == Index2B && Index1B == Index2A))
 						{
-							ResultingPoly[PolyIndex1].AdjacentPolygonList.Add(&ResultingPoly[PolyIndex2]);
+							ResultingPoly[PolyIndex1].AdjacentPolygonList.Add(ResultingPoly[PolyIndex2]);
 						}
 					}
 				}
@@ -543,18 +549,24 @@ void APolygonMesh::BuildEdgeAdjacencyData(TArray<FVector>& Vertices, TArray<int>
 	}
 }
 
-void APolygonMesh::FindPolygonCentroid(FPolygonData& Polygon)
+void APolygonMesh::SendDataToNavmesh(TArray<FPolygonData>& NavData)
 {
-	float SignedArea = 0; 
-	int TotalVertices = Polygon.Vertices.Num();
+	NavData = ResultingPoly;
+	ResultingPoly.Empty();
+}
+
+FVector APolygonMesh::FindPolygonCentroid(TArray<FVector>& Vertices, bool ShowDebugInfo)
+{
+	float SignedArea = 0;
+	int TotalVertices = Vertices.Num();
 	FVector Centroid(0.f, 0.f, 0.f);
 	float MinZ = 0.f;
 	float MaxZ = 0.f;
 
 	for (int Index = 0; Index < TotalVertices; Index++)
 	{
-		FVector FirstPoint = Polygon.Vertices[Index];
-		FVector SecondPoint = Polygon.Vertices[(Index + 1) % TotalVertices];
+		FVector FirstPoint = Vertices[Index];
+		FVector SecondPoint = Vertices[(Index + 1) % TotalVertices];
 
 		float TempArea = (FirstPoint.X * SecondPoint.Y) - (FirstPoint.Y * SecondPoint.X);
 		SignedArea += TempArea;
@@ -573,9 +585,42 @@ void APolygonMesh::FindPolygonCentroid(FPolygonData& Polygon)
 	Centroid.Y = Centroid.Y / (6 * SignedArea);
 	Centroid.Z = (MaxZ + MinZ) / 2;
 
-	Polygon.Centroid = Centroid;
+	if (ShowDebugInfo)
+	{
+		DrawDebugSphere(GetWorld(), Centroid, 5.f, 5, FColor::Red, false, 30.f, 30.f, 2.f);
+	}
 
-	/*DrawDebugSphere(GetWorld(), Centroid, 5.f, 5, FColor::Red, false, 30.f, 30.f, 2.f);*/
+	return Centroid;
+}
+
+void APolygonMesh::SortPolygonVertexOrder(TArray<FVector>& Vertices, TArray<int>& PolyIndices)
+{
+	TArray<FVector> PolyVertices;
+	TMap<int, int> TempOrderedIndices;
+
+	//Find the vertices forming the polygon from the global vertices array
+	for (int Index = 0; Index < PolyIndices.Num(); Index++)
+	{
+		PolyVertices.Add(Vertices[PolyIndices[Index]]);
+	}
+
+	//Find the centroid and use the centroid and vertices data to find the angle of each vertex to the center point
+	FVector Centroid = FindPolygonCentroid(PolyVertices);
+	for (int Index = 0; Index < PolyVertices.Num(); Index++)
+	{
+		int Angle = UKismetMathLibrary::DegAtan2(PolyVertices[Index].X - Centroid.X, PolyVertices[Index].Y - Centroid.Y);
+		Angle = (Angle + 360) % 360;
+
+		TempOrderedIndices.Add(PolyIndices[Index], Angle);
+	}
+
+	//Reorder the vertices based on the angle found and pass back the indices 
+	PolyIndices.Empty();
+	TempOrderedIndices.ValueSort([](int A, int B){ return A > B;});
+	for (auto Index : TempOrderedIndices)
+	{
+		PolyIndices.Add(Index.Key);
+	}
 }
 
 int APolygonMesh::GetPolyVertCount(int PolyStartingIndex, TArray<int>& PolygonIndices)

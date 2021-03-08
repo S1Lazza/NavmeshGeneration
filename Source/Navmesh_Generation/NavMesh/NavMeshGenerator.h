@@ -51,5 +51,5 @@ private:
 	FBox NavBounds;
 	TArray<UStaticMeshComponent*> Geometries;
 	ACustomNavigationData* NavigationMesh;
-	bool EnableDirtyAreasRebuild = false;
+	bool EnableDirtyAreasRebuild = true;
 };

@@ -55,11 +55,25 @@ struct FPolygonData
 {
 	GENERATED_USTRUCT_BODY()
 
+	//Polygon vertices location
 	TArray<FVector> Vertices;
 
+	//Polygon centroid location
 	FVector Centroid = FVector(0.f, 0.f, 0.f);
 
-	TArray<FPolygonData*> AdjacentPolygonList;
+	//List of the polygons that shares an edge with this one
+	TArray<FPolygonData> AdjacentPolygonList;
+
+	//Utility data for iterating and searching through the adjacent polygons
+	int Index;
+
+	//Pathfinding Info
+	//TODO: Move these info outside of this struct as they are part of a different logic and system
+	float F = 0.f;
+
+	float G = 0.f;
+
+	float H = 0.f;
 };
 
 
@@ -101,11 +115,22 @@ public:
 	//Store the informtation relative to the polygon that can be merged and their shared edge
 	void GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& PolyIndicesB, TArray<FVector>& Vertices, FPolygonMergeData& MergingInfo);
 
+	//Split the vertices and indices array into data for easier access
+	void SplitPolygonData(TArray<FVector>& Vertices, TArray<int>& PolyIndices);
+
 	//Create connections between the adjacent shared edges
-	void BuildEdgeAdjacencyData(TArray<FVector>& Vertices, TArray<int>& PolyIndices);
+	void BuildEdgeAdjacencyData();
+
+	void SendDataToNavmesh(TArray<FPolygonData>& NavData);
 
 	//Find the centroid of the polygons created
-	void FindPolygonCentroid(FPolygonData& Polygon);
+	FVector FindPolygonCentroid(TArray<FVector>& Vertices, bool ShowDebugInfo = false);
+
+	//Sort the vertex order of the merged polygons : https://math.stackexchange.com/questions/978642/how-to-sort-vertices-of-a-polygon-in-counter-clockwise-order
+	//This is required because the vertices possess a global indicizationa and the shared vertices between regions
+	//Can cause issues during the merging of the polygons because of that -> the new polygon can present a wrong order of the vertices which can led to
+	//An incorrect formation of the polygon edges
+	void SortPolygonVertexOrder(TArray<FVector>& Vertices, TArray<int>& PolyIndices);
 
 	int GetPolyVertCount(int PolyStartingIndex, TArray<int>& PolygonIndices);
 

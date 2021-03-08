@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "NavigationData.h"
+#include "PolygonMesh.h"
 #include "NavMeshGenerator.h"
 #include "CustomNavigationData.generated.h"
 
@@ -20,4 +21,6 @@ public:
 	virtual void ConditionalConstructGenerator() override;
 
 	virtual UPrimitiveComponent* ConstructRenderingComponent() override;
+
+	TArray<FPolygonData> ResultingPoly;
 };
