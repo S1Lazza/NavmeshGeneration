@@ -173,7 +173,7 @@ void FNavMeshGenerator::CreateContour(AContour* Contour, AOpenHeightfield* OpenH
 void FNavMeshGenerator::CreatePolygonMesh(APolygonMesh* PolyMesh, const AContour* Contour, const AOpenHeightfield* OpenHeightfield)
 {
 	PolyMesh->Init(OpenHeightfield);
-	PolyMesh->GeneratePolygonMesh(Contour);
+	PolyMesh->GeneratePolygonMesh(Contour, true, 1);
 	PolyMesh->SendDataToNavmesh(NavigationMesh->ResultingPoly);
 }
 

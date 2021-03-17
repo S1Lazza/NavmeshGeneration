@@ -191,7 +191,7 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 		}
 
 		//Add to the GlobalPolys container the single polygon indices, split by a NULL_INDEX value
-		//TODO: To evaluate if this step is neededw
+		//TODO: To evaluate if this step is needed
 		for (int Poly = 0; Poly < TempPolysIndices.Num(); Poly++)
 		{
 			for (int PolyIndex = 0; PolyIndex < TempPolysIndices[Poly].Num(); PolyIndex++)
@@ -353,16 +353,23 @@ void APolygonMesh::PerformPolygonMerging(TArray<TArray<int>>& PolysIndices, TArr
 			break;
 		}
 
+		TArray<int> TempPoly;
+		int Position = 0;
+
 		//Add to the first valid merging polygon found, the missing indices from the second one
-		for (int Index = 0; Index < PolysIndices[BestPolyB].Num(); Index++)
+		for (int Index = 0; Index < PolysIndices[BestPolyA].Num() - 1; Index++)
 		{
-			if (!PolysIndices[BestPolyA].Contains(PolysIndices[BestPolyB][Index]))
-			{
-				PolysIndices[BestPolyA].Add(PolysIndices[BestPolyB][Index]);
-			}
+			SetArrayElement(TempPoly, PolysIndices[BestPolyA][(PolyAVertIndex + 1 + Index) % PolysIndices[BestPolyA].Num()], Position);
+			Position++;
 		}
 
-		SortPolygonVertexOrder(Vertices, PolysIndices[BestPolyA]);
+		for (int Index = 0; Index < PolysIndices[BestPolyB].Num() - 1; Index++)
+		{
+			SetArrayElement(TempPoly, PolysIndices[BestPolyB][(PolyBVertIndex + Index + 1) % PolysIndices[BestPolyB].Num()], Position);
+			Position++;
+		}
+
+		PolysIndices[BestPolyA] = TempPoly;
 
 		//Remove the second polygon indices as they are not needed anymore
 		PolysIndices.RemoveAt(BestPolyB);
@@ -449,7 +456,8 @@ void APolygonMesh::GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& Poly
 
 	SharedVertexMinus = PolyIndicesA[GetPreviousArrayIndex(MergingInfo.StartingSharedIndexA, PolyVertACount)];
 	SharedVertex = PolyIndicesA[MergingInfo.StartingSharedIndexA];
-	SharedVertexPlus = PolyIndicesB[((MergingInfo.StartingSharedIndexB + 2) % (PolyVertBCount - 1))];
+	SharedVertexPlus = PolyIndicesB[((MergingInfo.StartingSharedIndexB + 2) % (PolyVertBCount))];
+	/*SharedVertexPlus = PolyIndicesA[GetNextArrayIndex(MergingInfo.StartingSharedIndexA, PolyVertACount)];*/
 
 	//The shared vertex is is not to the left of segment vertMinus->vertPlus, for a clockwise wrapped polygon this indicates a concave section
 	if (!IsVertexLeftOrCollinear(Vertices[SharedVertex], Vertices[SharedVertexMinus], Vertices[SharedVertexPlus]))
@@ -459,7 +467,8 @@ void APolygonMesh::GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& Poly
 
 	SharedVertexMinus = PolyIndicesB[GetPreviousArrayIndex(MergingInfo.StartingSharedIndexB, PolyVertBCount)];
 	SharedVertex = PolyIndicesB[MergingInfo.StartingSharedIndexB];
-	SharedVertexPlus = PolyIndicesA[((MergingInfo.StartingSharedIndexA + 2) % (PolyVertACount - 1))];
+	SharedVertexPlus = PolyIndicesA[((MergingInfo.StartingSharedIndexA + 2) % (PolyVertACount))];
+	/*SharedVertexPlus = PolyIndicesB[GetNextArrayIndex(MergingInfo.StartingSharedIndexB, PolyVertBCount)];*/
 
 	//The shared vertex is is not to the left of segment vertMinus->vertPlus, for a clockwise wrapped polygon this indicates a concave section
 	if (!IsVertexLeftOrCollinear(Vertices[SharedVertex], Vertices[SharedVertexMinus], Vertices[SharedVertexPlus]))
@@ -557,7 +566,7 @@ void APolygonMesh::SendDataToNavmesh(TArray<FPolygonData>& NavData)
 
 FVector APolygonMesh::FindPolygonCentroid(TArray<FVector>& Vertices, bool ShowDebugInfo)
 {
-	float SignedArea = 0;
+	float SignedArea = 0.f;
 	int TotalVertices = Vertices.Num();
 	FVector Centroid(0.f, 0.f, 0.f);
 	float MinZ = 0.f;
@@ -571,8 +580,8 @@ FVector APolygonMesh::FindPolygonCentroid(TArray<FVector>& Vertices, bool ShowDe
 		float TempArea = (FirstPoint.X * SecondPoint.Y) - (FirstPoint.Y * SecondPoint.X);
 		SignedArea += TempArea;
 
-		Centroid.X += (FirstPoint.X + SecondPoint.X) * TempArea;
-		Centroid.Y += (FirstPoint.Y + SecondPoint.Y) * TempArea;
+		Centroid.X = Centroid.X + ((FirstPoint.X + SecondPoint.X) * TempArea);
+		Centroid.Y = Centroid.Y + ((FirstPoint.Y + SecondPoint.Y) * TempArea);
 
 		//TODO: The calculation on the Z axis is done by calculating the mid Z value between the vertices
 		//This is a really approssimative way to calculate it and need a better implementation
@@ -708,7 +717,8 @@ bool APolygonMesh::IsValidPartition(int IndexA, int IndexB, TArray<FVector>& Ver
 float APolygonMesh::GetDoubleSignedArea(const FVector A, const FVector B, const FVector C)
 {
 	//The value returned is negative because the arrangment order of the vertices is clockwise
-	return -((B.X - A.X) * (C.Y - A.Y) - (C.X - A.X) * (B.Y - A.Y));
+	/*return -((B.X - A.X) * (C.Y - A.Y) - (C.X - A.X) * (B.Y - A.Y));*/
+	return (B.Y - A.Y) * (C.X - A.X) - (C.Y - A.Y) * (B.X - A.X);
 }
 
 bool APolygonMesh::IsVertexLeft(const FVector VertexToTest, const FVector LineStart, const FVector LineEnd)

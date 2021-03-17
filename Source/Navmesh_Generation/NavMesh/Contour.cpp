@@ -314,7 +314,7 @@ void AContour::ReinsertNullRegionVertices(TArray<FContourVertexData>& VerticesRa
 		}
 
 		//Condition to check the vertices to skip, the ones that
-		// 1 - have the same region ID of the final point of the dge considered
+		// 1 - have the same region ID of the final point of the edge considered
 		// 2- the region ID is different from the null region
 		//For vertices that represents portals between non null region, there is no calculation to apply and all the raw vertices are discarded
 		if (VerticesRaw[(RawIndex1 + 1) % RawVerticesCount].ExternalRegionID == VerticesRaw[IndexToCheck].ExternalRegionID &&
@@ -329,10 +329,17 @@ void AContour::ReinsertNullRegionVertices(TArray<FContourVertexData>& VerticesRa
 		while (IndexTestVertex != RawIndex2)
 		{
 			//Find the distance between the edge and the vertex considered
-			float Deviation = FMath::PointDistToSegment(VerticesRaw[IndexTestVertex].Coordinate, VerticesSimplified[MandatoryIndex1].Coordinate, VerticesSimplified[MandatoryIndex2].Coordinate);
+			/*float Deviation = FMath::PointDistToSegment(VerticesRaw[IndexTestVertex].Coordinate, VerticesSimplified[MandatoryIndex1].Coordinate, VerticesSimplified[MandatoryIndex2].Coordinate);*/
+
+			//According to the algorithm using the distance between the raw point considered and the segment should do the trick
+			//However I noticed that, in some cases this does not work (when you have a straight line of point equidistant from the raw one
+			//If one is not valid all of them are not valid and therefore the line is removed
+			//For this reason the solution below is preferred
+			FVector EdgeMidpoint = (VerticesSimplified[MandatoryIndex1].Coordinate + VerticesSimplified[MandatoryIndex2].Coordinate) * 0.5f;
+			float Deviation = FVector::DistSquared(VerticesRaw[IndexTestVertex].Coordinate, EdgeMidpoint);
 
 			//If greater than the value established
-			if (Deviation >= EdgeMaxDeviation)
+			if (Deviation >= (EdgeMaxDeviation * EdgeMaxDeviation))
 			{
 				//Insert the new vertex in between, making sure to update all the needed value 
 				//(the total vertices in the array, the vertices forming the edge to check against and the current index to test)
@@ -477,17 +484,17 @@ void AContour::DrawRegionRawContour(TArray<FContourVertexData>& Vertices)
 			}
 		}
 
-		/*for (int Index = 0; Index < TempContainer.Num(); Index++)
-		{
-			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		//for (int Index = 0; Index < TempContainer.Num(); Index++)
+		//{
+		//	/*FActorSpawnParameters SpawnInfo;
+		//	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-			ATextRenderActor* Text = GetWorld()->SpawnActor<ATextRenderActor>(TempContainer[Index], FRotator(0.f, 180.f, 0.f), SpawnInfo);
-			Text->GetTextRender()->SetText(FString::FromInt(Index));
-			Text->GetTextRender()->SetTextRenderColor(FColor::Red);
+		//	ATextRenderActor* Text = GetWorld()->SpawnActor<ATextRenderActor>(TempContainer[Index], FRotator(0.f, 180.f, 0.f), SpawnInfo);
+		//	Text->GetTextRender()->SetText(FString::FromInt(Index));
+		//	Text->GetTextRender()->SetTextRenderColor(FColor::Red);*/
 
-			DrawDebugSphere(GetWorld(), TempContainer[Index], 4.f, 2.f, FColor::Red, false, 20.f, 0.f, 2.f);
-		}*/
+		//	DrawDebugSphere(GetWorld(), TempContainer[Index], 4.f, 2.f, FColor::Red, false, 20.f, 0.f, 2.f);
+		//}
 
 		UUtilityDebug::DrawPolygon(GetWorld(), TempContainer, FColor::Blue, 20.0f, 2.0f);
 		TempContainer.Empty();
