@@ -10,35 +10,17 @@
 #include "Components/TextRenderComponent.h"
 #include "Math/UnrealMathUtility.h"
 
-// Sets default values
-APolygonMesh::APolygonMesh()
+void UPolygonMesh::Init(const UOpenHeightfield* OpenHF)
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	CurrentWorld = OpenHF->CurrentWorld;
 	MaxVertexPerPoly = FMath::Max(3, MaxVertexPerPoly);
-}
-
-// Called when the game starts or when spawned
-void APolygonMesh::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
-// Called every frame
-void APolygonMesh::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
-void APolygonMesh::Init(const AOpenHeightfield* OpenHF)
-{
 	BoundMin = OpenHF->BoundMin;
 	BoundMax = OpenHF->BoundMax;
 	CellSize = OpenHF->CellSize;
 	CellHeight = OpenHF->CellHeight;
 }
 
-int APolygonMesh::SplitContourDataByRegion(const AContour* Contour)
+int UPolygonMesh::SplitContourDataByRegion(const UContour* Contour)
 {
 	int LoopIndex = 1;
 	int MaxNumberOfVertices = 0;
@@ -68,13 +50,13 @@ int APolygonMesh::SplitContourDataByRegion(const AContour* Contour)
 	return MaxNumberOfVertices;
 }
 
-void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecursiveMerging, int NumberOfRecursion)
+void UPolygonMesh::GeneratePolygonMesh(const UContour* Contour, bool PerformRecursiveMerging, int NumberOfRecursion)
 {
 	int TotalContourVertices = Contour->SimplifiedVertices.Num();
 
 	if (!Contour || TotalContourVertices == 0 || (TotalContourVertices - 1) >  UINT_MAX)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("Invalid contour detected, impossible to generate the polygon mesh"));
+		UE_LOG(LogTemp, Warning, TEXT("Invalid contour detected, impossible to generate the polygon mesh"));
 		return;
 	}
 
@@ -93,8 +75,6 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 	*/
 	int TotalPolyCount = 0;
 	int GlobalPolyIndex = 0;
-	TArray<int> GlobalPolys;
-	TArray<FVector> GlobalVertices;
 	TArray<int> GlobalIndices;
 	TArray<int> GlobalRegions;
 
@@ -112,7 +92,7 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 	{
 		if (ContoursData[ContourIndex].Vertices.Num() < 3)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("Polygon generation failure: Contour has too few vertices."));
+			UE_LOG(LogTemp, Warning, TEXT("Polygon generation failure: Contour has too few vertices."));
 			continue;
 		}
 
@@ -133,12 +113,11 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 		int PolyCount = Triangulate(ContoursData[ContourIndex].Vertices, TempIndices, TempTriangles);
 		if (PolyCount <= 0)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("Polygon generation failure: Could not triangulate."));
+			UE_LOG(LogTemp, Warning, TEXT("Polygon generation failure: Could not triangulate."));
 			continue;
 		}
 
 		//Utility functions to display the contours and the triangles created
-		/*UUtilityDebug::DrawPolygon(GetWorld(), ContoursData[ContourIndex].Vertices, FColor::Red, 20.0f, 1.0f);*/
 		/*DrawDebugPolyMeshTriangles(ContoursData[ContourIndex].Vertices, TempTriangles, PolyCount);*/
 
 		//Iterate through all the contour vertices
@@ -206,15 +185,12 @@ void APolygonMesh::GeneratePolygonMesh(const AContour* Contour, bool PerformRecu
 		TotalPolyCount += PolyCount;
 	}
 
-	DrawDebugPolyMeshPolys(GlobalVertices, GlobalPolys);
-
-	//Test code for pathfinding implementation
 	//TODO: Implement a way to build adjacent data using the index and vertices array created above
 	SplitPolygonData(GlobalVertices, GlobalPolys);
 	BuildEdgeAdjacencyData();
 }
 
-int APolygonMesh::Triangulate(TArray<FVector>& Vertices, TArray<FTriangleData>& Indices, TArray<int>& Triangles)
+int UPolygonMesh::Triangulate(TArray<FVector>& Vertices, TArray<FTriangleData>& Indices, TArray<int>& Triangles)
 {
 	//The number of triangles is localized to the contour considered, empty it before triangulating a new one
 	Triangles.Empty();
@@ -316,7 +292,7 @@ int APolygonMesh::Triangulate(TArray<FVector>& Vertices, TArray<FTriangleData>& 
 
 }
 
-void APolygonMesh::PerformPolygonMerging(TArray<TArray<int>>& PolysIndices, TArray<FVector>& Vertices, int& PolyTotalCount)
+void UPolygonMesh::PerformPolygonMerging(TArray<TArray<int>>& PolysIndices, TArray<FVector>& Vertices, int& PolyTotalCount)
 {
 	while (true)
 	{
@@ -379,7 +355,7 @@ void APolygonMesh::PerformPolygonMerging(TArray<TArray<int>>& PolysIndices, TArr
 	}
 }
 
-void APolygonMesh::RemoveCollinearIndices(TArray<TArray<int>>& PolysIndices, TArray<FVector>& Vertices)
+void UPolygonMesh::RemoveCollinearIndices(TArray<TArray<int>>& PolysIndices, TArray<FVector>& Vertices)
 {
 	for (int Index = 0; Index < PolysIndices.Num(); Index++)
 	{
@@ -407,7 +383,7 @@ void APolygonMesh::RemoveCollinearIndices(TArray<TArray<int>>& PolysIndices, TAr
 	}
 }
 
-void APolygonMesh::GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& PolyIndicesB, TArray<FVector>& Vertices, FPolygonMergeData& MergingInfo)
+void UPolygonMesh::GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& PolyIndicesB, TArray<FVector>& Vertices, FPolygonMergeData& MergingInfo)
 {
 	MergingInfo.EdgeLenghtSqrt = -1.f;
 	MergingInfo.StartingSharedIndexA = -1;
@@ -485,7 +461,7 @@ void APolygonMesh::GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& Poly
 
 }
 
-void APolygonMesh::SplitPolygonData(TArray<FVector>& Vertices, TArray<int>& PolyIndices)
+void UPolygonMesh::SplitPolygonData(TArray<FVector>& Vertices, TArray<int>& PolyIndices)
 {
 	int PolyIndex = 0;
 
@@ -515,7 +491,7 @@ void APolygonMesh::SplitPolygonData(TArray<FVector>& Vertices, TArray<int>& Poly
 	}
 }
 
-void APolygonMesh::BuildEdgeAdjacencyData()
+void UPolygonMesh::BuildEdgeAdjacencyData()
 {
 	//Search adjacent polygons
 	for (int PolyIndex1 = 0; PolyIndex1 < ResultingPoly.Num(); PolyIndex1++)
@@ -558,13 +534,13 @@ void APolygonMesh::BuildEdgeAdjacencyData()
 	}
 }
 
-void APolygonMesh::SendDataToNavmesh(TArray<FPolygonData>& NavData)
+void UPolygonMesh::SendDataToNavmesh(TArray<FPolygonData>& NavData)
 {
 	NavData = ResultingPoly;
 	ResultingPoly.Empty();
 }
 
-FVector APolygonMesh::FindPolygonCentroid(TArray<FVector>& Vertices, bool ShowDebugInfo)
+FVector UPolygonMesh::FindPolygonCentroid(TArray<FVector>& Vertices, bool ShowDebugInfo)
 {
 	float SignedArea = 0.f;
 	int TotalVertices = Vertices.Num();
@@ -596,13 +572,13 @@ FVector APolygonMesh::FindPolygonCentroid(TArray<FVector>& Vertices, bool ShowDe
 
 	if (ShowDebugInfo)
 	{
-		DrawDebugSphere(GetWorld(), Centroid, 5.f, 5, FColor::Red, false, 30.f, 30.f, 2.f);
+		DrawDebugSphere(CurrentWorld, Centroid, 5.f, 5, FColor::Red, false, 30.f, 30.f, 2.f);
 	}
 
 	return Centroid;
 }
 
-void APolygonMesh::SortPolygonVertexOrder(TArray<FVector>& Vertices, TArray<int>& PolyIndices)
+void UPolygonMesh::SortPolygonVertexOrder(TArray<FVector>& Vertices, TArray<int>& PolyIndices)
 {
 	TArray<FVector> PolyVertices;
 	TMap<int, int> TempOrderedIndices;
@@ -632,7 +608,7 @@ void APolygonMesh::SortPolygonVertexOrder(TArray<FVector>& Vertices, TArray<int>
 	}
 }
 
-int APolygonMesh::GetPolyVertCount(int PolyStartingIndex, TArray<int>& PolygonIndices)
+int UPolygonMesh::GetPolyVertCount(int PolyStartingIndex, TArray<int>& PolygonIndices)
 {
 	for (int Index = 0; Index < MaxVertexPerPoly; Index++)
 	{
@@ -644,7 +620,7 @@ int APolygonMesh::GetPolyVertCount(int PolyStartingIndex, TArray<int>& PolygonIn
 	return MaxVertexPerPoly;
 }
 
-bool APolygonMesh::LocatedInInternalAngle(int IndexA, int IndexB, TArray<FVector>& Vertices, TArray<FTriangleData>& Indices)
+bool UPolygonMesh::LocatedInInternalAngle(int IndexA, int IndexB, TArray<FVector>& Vertices, TArray<FTriangleData>& Indices)
 {
 	//Get the index values of the vertices of interest 
 	int VertAIndex = Indices[IndexA].ContourIndex;
@@ -668,7 +644,7 @@ bool APolygonMesh::LocatedInInternalAngle(int IndexA, int IndexB, TArray<FVector
 		    (IsVertexRightOrCollinear(Vertices[VertBIndex], Vertices[VertAIndex], Vertices[VertAMinus])));
 }
 
-bool APolygonMesh::InvalidEdgeIntersection(int IndexA, int IndexB, TArray<FVector>& Vertices, TArray<FTriangleData>& Indices)
+bool UPolygonMesh::InvalidEdgeIntersection(int IndexA, int IndexB, TArray<FVector>& Vertices, TArray<FTriangleData>& Indices)
 {
 	int VertAIndex = Indices[IndexA].ContourIndex;
 	int VertBIndex = Indices[IndexB].ContourIndex;
@@ -707,41 +683,41 @@ bool APolygonMesh::InvalidEdgeIntersection(int IndexA, int IndexB, TArray<FVecto
 	return false;
 }
 
-bool APolygonMesh::IsValidPartition(int IndexA, int IndexB, TArray<FVector>& Vertices, TArray<FTriangleData>& Indices)
+bool UPolygonMesh::IsValidPartition(int IndexA, int IndexB, TArray<FVector>& Vertices, TArray<FTriangleData>& Indices)
 {
 	bool Internal = LocatedInInternalAngle(IndexA, IndexB, Vertices, Indices);
 	bool Invalid = !InvalidEdgeIntersection(IndexA, IndexB, Vertices, Indices);
 	return Internal && Invalid;
 }
 
-float APolygonMesh::GetDoubleSignedArea(const FVector A, const FVector B, const FVector C)
+float UPolygonMesh::GetDoubleSignedArea(const FVector A, const FVector B, const FVector C)
 {
 	//The value returned is negative because the arrangment order of the vertices is clockwise
 	/*return -((B.X - A.X) * (C.Y - A.Y) - (C.X - A.X) * (B.Y - A.Y));*/
 	return (B.Y - A.Y) * (C.X - A.X) - (C.Y - A.Y) * (B.X - A.X);
 }
 
-bool APolygonMesh::IsVertexLeft(const FVector VertexToTest, const FVector LineStart, const FVector LineEnd)
+bool UPolygonMesh::IsVertexLeft(const FVector VertexToTest, const FVector LineStart, const FVector LineEnd)
 {
 	return GetDoubleSignedArea(LineStart, VertexToTest, LineEnd) < 0;
 }
 
-bool APolygonMesh::IsVertexLeftOrCollinear(const FVector VertexToTest, const FVector LineStart, const FVector LineEnd)
+bool UPolygonMesh::IsVertexLeftOrCollinear(const FVector VertexToTest, const FVector LineStart, const FVector LineEnd)
 {
 	return GetDoubleSignedArea(LineStart, VertexToTest, LineEnd) <= 0;
 }
 
-bool APolygonMesh::IsVertexRight(const FVector VertexToTest, const FVector LineStart, const FVector LineEnd)
+bool UPolygonMesh::IsVertexRight(const FVector VertexToTest, const FVector LineStart, const FVector LineEnd)
 {
 	return GetDoubleSignedArea(LineStart, VertexToTest, LineEnd) > 0;
 }
 
-bool APolygonMesh::IsVertexRightOrCollinear(const FVector VertexToTest, const FVector LineStart, const FVector LineEnd)
+bool UPolygonMesh::IsVertexRightOrCollinear(const FVector VertexToTest, const FVector LineStart, const FVector LineEnd)
 {
 	return GetDoubleSignedArea(LineStart, VertexToTest, LineEnd) >= 0;
 }
 
-int APolygonMesh::GetPreviousArrayIndex(const int Index, const int ArraySize)
+int UPolygonMesh::GetPreviousArrayIndex(const int Index, const int ArraySize)
 {
 	if ((Index - 1) >= 0)
 	{
@@ -753,7 +729,7 @@ int APolygonMesh::GetPreviousArrayIndex(const int Index, const int ArraySize)
 	}
 }
 
-int APolygonMesh::GetNextArrayIndex(const int Index, const int ArraySize)
+int UPolygonMesh::GetNextArrayIndex(const int Index, const int ArraySize)
 {
 	if ((Index + 1) < ArraySize)
 	{
@@ -765,7 +741,7 @@ int APolygonMesh::GetNextArrayIndex(const int Index, const int ArraySize)
 	}
 }
 
-void APolygonMesh::DrawDebugPolyMeshTriangles(const TArray<FVector>& Vertices, const TArray<int>& Triangles, const int NumberOfTriangles)
+void UPolygonMesh::DrawDebugPolyMeshTriangles(const TArray<FVector>& Vertices, const TArray<int>& Triangles, const int NumberOfTriangles)
 {
 	int LoopIndex = 0;
 	TArray<FVector> TempArray;
@@ -780,36 +756,36 @@ void APolygonMesh::DrawDebugPolyMeshTriangles(const TArray<FVector>& Vertices, c
 			TempArray.Add(Vertices[TriangleIndex]);
 		}
 
-		UUtilityDebug::DrawPolygon(GetWorld(), TempArray, FColor::Red, 20.0f, 1.0f);
+		UUtilityDebug::DrawPolygon(CurrentWorld, TempArray, FColor::Red, 20.0f, 1.0f);
 		TempArray.Empty();
 		LoopIndex++;
 	}
 }
 
-void APolygonMesh::DrawDebugPolyMeshPolys(const TArray<FVector>& Vertices, const TArray<int>& Polys)
+void UPolygonMesh::DrawDebugPolyMeshPolys()
 {
 	TArray<FVector> TempArray;
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	for (int Index = 0; Index < Polys.Num(); Index++)
+	for (int Index = 0; Index < GlobalPolys.Num(); Index++)
 	{
-		if (Polys[Index] != NULL_INDEX)
+		if (GlobalPolys[Index] != NULL_INDEX)
 		{
-			int VertexIndex = Polys[Index];
+			int VertexIndex = GlobalPolys[Index];
 
-			DrawDebugSphere(GetWorld(), Vertices[VertexIndex], 4.f, 2.f, FColor::Blue, false, 20.f, 0.f, 2.f);
-			/*ATextRenderActor* Text = GetWorld()->SpawnActor<ATextRenderActor>(Vertices[VertexIndex], FRotator(0.f, 180.f, 0.f), SpawnInfo);
+			DrawDebugSphere(CurrentWorld, GlobalVertices[VertexIndex], 4.f, 2.f, FColor::Blue, false, 20.f, 0.f, 2.f);
+			/*ATextRenderActor* Text = CurrentWorld->SpawnActor<ATextRenderActor>(Vertices[VertexIndex], FRotator(0.f, 180.f, 0.f), SpawnInfo);
 			Text->GetTextRender()->SetText(FString::FromInt(VertexIndex));
 			Text->GetTextRender()->SetTextRenderColor(FColor::Red);*/
 
-			TempArray.Add(Vertices[VertexIndex]);
+			TempArray.Add(GlobalVertices[VertexIndex]);
 		}
 		else
 		{
 			if (TempArray.Num() > 0)
 			{
-				UUtilityDebug::DrawPolygon(GetWorld(), TempArray, FColor::Red, 1000.f, 1.f);
+				UUtilityDebug::DrawPolygon(CurrentWorld, TempArray, FColor::Red, 1000.f, 1.f);
 				TempArray.Empty();
 			}
 		}

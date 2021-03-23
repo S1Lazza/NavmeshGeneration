@@ -4,25 +4,7 @@
 #include "BaseHeightfield.h"
 #include "../Utility/UtilityDebug.h"
 
-ABaseHeightfield::ABaseHeightfield()
-{
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
-
-	CalculateWidthDepthHeight();
-}
-
-void ABaseHeightfield::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
-void ABaseHeightfield::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
-void ABaseHeightfield::CalculateWidthDepthHeight()
+void UBaseHeightfield::CalculateWidthDepthHeight()
 {
 	FVector BoundExtension = BoundMax - BoundMin;
 	Width = FMath::RoundFromZero(BoundExtension.X / CellSize);
@@ -30,7 +12,7 @@ void ABaseHeightfield::CalculateWidthDepthHeight()
 	Height = FMath::RoundFromZero(BoundExtension.Z / CellHeight);
 }
 
-int ABaseHeightfield::GetGridIndex(const int WidthIndex, const int DepthIndex)
+int UBaseHeightfield::GetGridIndex(const int WidthIndex, const int DepthIndex)
 {
 	if (WidthIndex < 0 || DepthIndex < 0 || WidthIndex >= Width || DepthIndex >= Depth)
 	{
@@ -41,14 +23,14 @@ int ABaseHeightfield::GetGridIndex(const int WidthIndex, const int DepthIndex)
 	return DepthIndex * Width + WidthIndex;
 }
 
-int ABaseHeightfield::GetDirOffSetWidth(const int Direction)
+int UBaseHeightfield::GetDirOffSetWidth(const int Direction)
 {
 	TArray<int> Offset = { -1, 0, 1, 0 };
 
 	return Offset[Direction & 0X03];
 }
 
-int ABaseHeightfield::GetDirOffSetDepth(const int Direction)
+int UBaseHeightfield::GetDirOffSetDepth(const int Direction)
 {
 	TArray<int> Offset = { 0, -1, 0, 1 };
 

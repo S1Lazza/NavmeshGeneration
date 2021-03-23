@@ -10,24 +10,9 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "../Utility/UtilityDebug.h"
 
-AOpenHeightfield::AOpenHeightfield()
+void UOpenHeightfield::Init(const USolidHeightfield* SolidHeightfield)
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
-}
-
-void AOpenHeightfield::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
-void AOpenHeightfield::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
-void AOpenHeightfield::Init(const ASolidHeightfield* SolidHeightfield)
-{
+	CurrentWorld = SolidHeightfield->CurrentWorld;
 	BoundMin = SolidHeightfield->BoundMin;
 	BoundMax = SolidHeightfield->BoundMax;
 	CellSize = SolidHeightfield->CellSize;
@@ -35,7 +20,7 @@ void AOpenHeightfield::Init(const ASolidHeightfield* SolidHeightfield)
 	CalculateWidthDepthHeight();
 }
 
-void AOpenHeightfield::FindOpenSpanData(const ASolidHeightfield* SolidHeightfield)
+void UOpenHeightfield::FindOpenSpanData(const USolidHeightfield* SolidHeightfield)
 {
 	if (!SolidHeightfield)
 	{
@@ -110,7 +95,7 @@ void AOpenHeightfield::FindOpenSpanData(const ASolidHeightfield* SolidHeightfiel
 	}
 }
 
-void AOpenHeightfield::GenerateNeightborLinks()
+void UOpenHeightfield::GenerateNeightborLinks()
 {
 	//Iterate through all the base span
 	for (auto& Span : Spans)
@@ -159,7 +144,7 @@ void AOpenHeightfield::GenerateNeightborLinks()
 	}
 }
 
-void AOpenHeightfield::FindBorderSpan()
+void UOpenHeightfield::FindBorderSpan()
 {
 	for (auto& Span : Spans)
 	{
@@ -208,7 +193,7 @@ void AOpenHeightfield::FindBorderSpan()
 	}
 }
 
-void AOpenHeightfield::GenerateDistanceField()
+void UOpenHeightfield::GenerateDistanceField()
 {
 	FindBorderSpan();
 
@@ -328,13 +313,13 @@ void AOpenHeightfield::GenerateDistanceField()
 	}
 }
 
-void AOpenHeightfield::CalculateBorderDistanceMinMax(const int DistanceToBorder)
+void UOpenHeightfield::CalculateBorderDistanceMinMax(const int DistanceToBorder)
 {
 	MinBorderDistance = FMath::Min(MinBorderDistance, DistanceToBorder);
 	MaxBorderDistance = FMath::Max(MaxBorderDistance, DistanceToBorder);
 }
 
-void AOpenHeightfield::GenerateRegions()
+void UOpenHeightfield::GenerateRegions()
 {
 	int MinDist = TraversableAreaBorderSize + MinBorderDistance;
 	int CurrentDist = MaxBorderDistance;
@@ -400,7 +385,7 @@ void AOpenHeightfield::GenerateRegions()
 	RegionCount = NextRegionID;
 }
 
-void AOpenHeightfield::ExpandRegions(TArray<UOpenSpan*>& FloodedSpans, const int MaxIterations)
+void UOpenHeightfield::ExpandRegions(TArray<UOpenSpan*>& FloodedSpans, const int MaxIterations)
 {
 	int TotalFloodedSpans = FloodedSpans.Num();
 
@@ -504,7 +489,7 @@ void AOpenHeightfield::ExpandRegions(TArray<UOpenSpan*>& FloodedSpans, const int
 	}
 }
 
-void AOpenHeightfield::FloodNewRegion(UOpenSpan* RootSpan, const int FillToDistance, int& RegionID)
+void UOpenHeightfield::FloodNewRegion(UOpenSpan* RootSpan, const int FillToDistance, int& RegionID)
 {
 	int RegionSize = 0;
 
@@ -585,7 +570,7 @@ void AOpenHeightfield::FloodNewRegion(UOpenSpan* RootSpan, const int FillToDista
 	}
 }
 
-void AOpenHeightfield::HandleSmallRegions()
+void UOpenHeightfield::HandleSmallRegions()
 {
 	SetMinRegionParameters();
 
@@ -610,7 +595,7 @@ void AOpenHeightfield::HandleSmallRegions()
 	RemapRegionAndSpansID(Regions);
 }
 
-void AOpenHeightfield::GatherRegionsData(TArray<URegion*>& Regions)
+void UOpenHeightfield::GatherRegionsData(TArray<URegion*>& Regions)
 {
 	//Iterate through the spans
 	for (auto& Span : Spans)
@@ -665,7 +650,7 @@ void AOpenHeightfield::GatherRegionsData(TArray<URegion*>& Regions)
 	}
 }
 
-void AOpenHeightfield::RemoveSmallUnconnectedRegions(TArray<URegion*>& Regions)
+void UOpenHeightfield::RemoveSmallUnconnectedRegions(TArray<URegion*>& Regions)
 {
 	for (int RegionID = 1; RegionID < RegionCount; RegionID++)
 	{
@@ -689,7 +674,7 @@ void AOpenHeightfield::RemoveSmallUnconnectedRegions(TArray<URegion*>& Regions)
 	}
 }
 
-void AOpenHeightfield::MergeRegions(TArray<URegion*>& Regions)
+void UOpenHeightfield::MergeRegions(TArray<URegion*>& Regions)
 {
 	int MergeCount;
 
@@ -760,7 +745,7 @@ void AOpenHeightfield::MergeRegions(TArray<URegion*>& Regions)
 	} while (MergeCount > 0);
 }
 
-void AOpenHeightfield::RemapRegionAndSpansID(TArray<URegion*>& Regions)
+void UOpenHeightfield::RemapRegionAndSpansID(TArray<URegion*>& Regions)
 {
 	for (URegion* Region : Regions)
 	{
@@ -823,13 +808,13 @@ void AOpenHeightfield::RemapRegionAndSpansID(TArray<URegion*>& Regions)
 	}
 }
 
-void AOpenHeightfield::SetMinRegionParameters()
+void UOpenHeightfield::SetMinRegionParameters()
 {
 	MinUnconnectedRegionSize = FMath::Max(1, MinUnconnectedRegionSize);
 	MinMergeRegionSize = FMath::Max(0, MinMergeRegionSize);
 }
 
-void AOpenHeightfield::FindRegionConnections(UOpenSpan* Span, int NeighborDirection, TArray<int>& RegionConnection)
+void UOpenHeightfield::FindRegionConnections(UOpenSpan* Span, int NeighborDirection, TArray<int>& RegionConnection)
 {
 	UOpenSpan* CurrentSpan = Span;
 
@@ -898,12 +883,7 @@ void AOpenHeightfield::FindRegionConnections(UOpenSpan* Span, int NeighborDirect
 	}
 }
 
-void AOpenHeightfield::FreeSpanData()
-{
-	Spans.Empty();
-}
-
-void AOpenHeightfield::DrawDebugSpanData()
+void UOpenHeightfield::DrawDebugSpanData()
 {
 	for (auto& Span : Spans)
 	{
@@ -916,14 +896,14 @@ void AOpenHeightfield::DrawDebugSpanData()
 			FVector SpanMinCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width + Offset, BoundMin.Y + CellSize * CurrentSpan->Depth + Offset, BoundMin.Z + CellSize * CurrentSpan->Min);
 			FVector SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellSize * (CurrentSpan->Min));
 
-			UUtilityDebug::DrawMinMaxBox(GetWorld(), SpanMinCoord, SpanMaxCoord, FColor::Blue, 60.0f, 0.5f);
+			UUtilityDebug::DrawMinMaxBox(CurrentWorld, SpanMinCoord, SpanMaxCoord, FColor::Blue, 60.0f, 0.5f);
 
 			CurrentSpan = CurrentSpan->nextSpan;
 		} while (CurrentSpan);
 	}
 }
 
-void AOpenHeightfield::DrawSpanNeighbor(UOpenSpan* Span, const bool DebugNumbersVisible)
+void UOpenHeightfield::DrawSpanNeighbor(UOpenSpan* Span, const bool DebugNumbersVisible)
 {
 	float CenterOffset = CellSize / 2;
 	float Offset = 2.f;
@@ -933,7 +913,7 @@ void AOpenHeightfield::DrawSpanNeighbor(UOpenSpan* Span, const bool DebugNumbers
 	//Draw the current span
 	FVector SpanMinCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width + Offset, BoundMin.Y + CellSize * CurrentSpan->Depth + Offset, BoundMin.Z + CellSize * CurrentSpan->Min);
 	FVector SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellSize * (CurrentSpan->Min));
-	UUtilityDebug::DrawMinMaxBox(GetWorld(), SpanMinCoord, SpanMaxCoord, FColor::Red, 20.0f, 0.5f);
+	UUtilityDebug::DrawMinMaxBox(CurrentWorld, SpanMinCoord, SpanMaxCoord, FColor::Red, 20.0f, 0.5f);
 
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -951,13 +931,13 @@ void AOpenHeightfield::DrawSpanNeighbor(UOpenSpan* Span, const bool DebugNumbers
 		//Update the data to draw the axis neighbor span
 		SpanMinCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + Offset, BoundMin.Y + CellSize * NeighborSpan->Depth + Offset, BoundMin.Z + CellSize * NeighborSpan->Min);
 		SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellSize * (NeighborSpan->Min));
-		UUtilityDebug::DrawMinMaxBox(GetWorld(), SpanMinCoord, SpanMaxCoord, FColor::Blue, 20.0f, 0.5f);
+		UUtilityDebug::DrawMinMaxBox(CurrentWorld, SpanMinCoord, SpanMaxCoord, FColor::Blue, 20.0f, 0.5f);
 
 		FVector SpanCenterCoord;
 		if (DebugNumbersVisible)
 		{
 			SpanCenterCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + CenterOffset, BoundMin.Y + CellSize * NeighborSpan->Depth + CenterOffset, BoundMin.Z + CellSize * NeighborSpan->Min + CenterOffset);
-			ATextRenderActor* Text = GetWorld()->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
+			ATextRenderActor* Text = CurrentWorld->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
 			Text->GetTextRender()->SetText(FString::FromInt(NeighborNumber));
 			Text->GetTextRender()->SetTextRenderColor(FColor::Red);
 		}
@@ -975,12 +955,12 @@ void AOpenHeightfield::DrawSpanNeighbor(UOpenSpan* Span, const bool DebugNumbers
 		//Update the data to draw the diagonal neighbor span
 		SpanMinCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + Offset, BoundMin.Y + CellSize * NeighborSpan->Depth + Offset, BoundMin.Z + CellSize * NeighborSpan->Min);
 		SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellSize * (NeighborSpan->Min));
-		UUtilityDebug::DrawMinMaxBox(GetWorld(), SpanMinCoord, SpanMaxCoord, FColor::Blue, 20.0f, 0.5f);
+		UUtilityDebug::DrawMinMaxBox(CurrentWorld, SpanMinCoord, SpanMaxCoord, FColor::Blue, 20.0f, 0.5f);
 
 		if (DebugNumbersVisible)
 		{
 			SpanCenterCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + CenterOffset, BoundMin.Y + CellSize * NeighborSpan->Depth + CenterOffset, BoundMin.Z + CellSize * NeighborSpan->Min + CenterOffset);
-			ATextRenderActor* Text2 = GetWorld()->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
+			ATextRenderActor* Text2 = CurrentWorld->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
 			Text2->GetTextRender()->SetText(FString::FromInt(NeighborNumber));
 			Text2->GetTextRender()->SetTextRenderColor(FColor::Red);
 		}
@@ -990,7 +970,7 @@ void AOpenHeightfield::DrawSpanNeighbor(UOpenSpan* Span, const bool DebugNumbers
 	}
 }
 
-void AOpenHeightfield::DrawDistanceFieldDebugData(const bool DebugNumbersVisible, const bool DebugPlanesVisible)
+void UOpenHeightfield::DrawDistanceFieldDebugData(const bool DebugNumbersVisible, const bool DebugPlanesVisible)
 {
 	float CenterOffset = CellSize / 2;
 
@@ -1010,14 +990,14 @@ void AOpenHeightfield::DrawDistanceFieldDebugData(const bool DebugNumbersVisible
 
 			if (DebugNumbersVisible)
 			{
-				ATextRenderActor* Text = GetWorld()->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
+				ATextRenderActor* Text = CurrentWorld->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
 				Text->GetTextRender()->SetText(FString::FromInt(CurrentSpan->DistanceToBorder));
 				Text->GetTextRender()->SetTextRenderColor(FColor::Red);
 			}
 
 			if (DebugPlanesVisible)
 			{
-				AMeshDebug* Mesh = GetWorld()->SpawnActor<AMeshDebug>(SpanCenterCoord, FRotator(0.f, 0.f, 0.f), SpawnInfo);
+				AMeshDebug* Mesh = CurrentWorld->SpawnActor<AMeshDebug>(SpanCenterCoord, FRotator(0.f, 0.f, 0.f), SpawnInfo);
 				Mesh->SetActorScale3D(FVector(ScalingValue, ScalingValue, 0.01f));
 				Mesh->SetMaterialColorOnDistance(CurrentSpan->DistanceToBorder, MaxBorderDistance);
 			}
@@ -1027,7 +1007,7 @@ void AOpenHeightfield::DrawDistanceFieldDebugData(const bool DebugNumbersVisible
 	}
 }
 
-void AOpenHeightfield::DrawDebugRegions(const bool DebugNumbersVisible, const bool DebugPlanesVisible)
+void UOpenHeightfield::DrawDebugRegions(const bool DebugNumbersVisible, const bool DebugPlanesVisible)
 {
 	float CenterOffset = CellSize / 2;
 
@@ -1047,14 +1027,14 @@ void AOpenHeightfield::DrawDebugRegions(const bool DebugNumbersVisible, const bo
 
 			if (DebugNumbersVisible)
 			{
-				ATextRenderActor* Text = GetWorld()->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
+				ATextRenderActor* Text = CurrentWorld->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
 				Text->GetTextRender()->SetText(FString::FromInt(CurrentSpan->RegionID));
 				Text->GetTextRender()->SetTextRenderColor(FColor::Red);
 			}
 
 			if (DebugPlanesVisible)
 			{
-				AMeshDebug* Mesh = GetWorld()->SpawnActor<AMeshDebug>(SpanCenterCoord, FRotator(0.f, 0.f, 0.f), SpawnInfo);
+				AMeshDebug* Mesh = CurrentWorld->SpawnActor<AMeshDebug>(SpanCenterCoord, FRotator(0.f, 0.f, 0.f), SpawnInfo);
 				Mesh->SetActorScale3D(FVector(ScalingValue, ScalingValue, 0.01f));
 				Mesh->SetMaterialColorOnDistance(CurrentSpan->RegionID, MaxBorderDistance);
 			}

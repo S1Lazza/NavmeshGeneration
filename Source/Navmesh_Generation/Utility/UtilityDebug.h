@@ -22,11 +22,11 @@ public:
 		static void DrawMinMaxBox(const UObject* WorldContextObject, const FVector& Min, const FVector& Max, const FColor Color, const float Time, const float Thickness)
 	{
 		//Blueprint cannot access the world so it can't be passed as parameter
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+		const UWorld* CurrentWorld = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 
-		FVector Center = (Max + Min) / 2;
-		FVector BoxExtension = FVector((Max - Min) / 2);
-		DrawDebugBox(World, Center, BoxExtension, Color, false, Time, 0, Thickness);
+		FVector Center = (Max + Min) * 0.5f;
+		FVector BoxExtension = FVector((Max - Min) * 0.5f);
+		DrawDebugBox(CurrentWorld, Center, BoxExtension, Color, false, Time, 0, Thickness);
 	}
 
 	/*
@@ -39,19 +39,19 @@ public:
 		int ArrayLength = InputData.Num();
 		if (ArrayLength % 3 != 0)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("Incorrect number of vertices passed in, the number must be divided by 3"));
+			UE_LOG(LogTemp, Warning, TEXT("Incorrect number of vertices passed in, the number must be divided by 3"));
 			return;
 		}
 
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+		const UWorld* CurrentWorld = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 
 		int Step = 0;
 
 		while (Step < ArrayLength - 2)
 		{
-			DrawDebugLine(World, InputData[Step], InputData[Step + 1], Color, false, Time, 10, Thickness);
-			DrawDebugLine(World, InputData[Step + 1], InputData[Step + 2], Color, false, Time, 10, Thickness);
-			DrawDebugLine(World, InputData[Step], InputData[Step + 2], Color, false, Time, 10, Thickness);
+			DrawDebugLine(CurrentWorld, InputData[Step], InputData[Step + 1], Color, false, Time, 10, Thickness);
+			DrawDebugLine(CurrentWorld, InputData[Step + 1], InputData[Step + 2], Color, false, Time, 10, Thickness);
+			DrawDebugLine(CurrentWorld, InputData[Step], InputData[Step + 2], Color, false, Time, 10, Thickness);
 
 			Step += 3;
 		}
@@ -67,17 +67,17 @@ public:
 		int ArrayLength = InputData.Num();
 		if (ArrayLength < 3)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("Insufficient number of vertices passed in, they need to be more than 3"));
+			UE_LOG(LogTemp, Warning, TEXT("Insufficient number of vertices passed in, they need to be more than 3"));
 			return;
 		}
-
-		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+		
+		const UWorld* CurrentWorld = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 
 		FVector SecondPoint = InputData[ArrayLength - 1];
 
 		for (FVector FirstPoint : InputData)
 		{
-			DrawDebugLine(World, FirstPoint, SecondPoint, Color, false, Time, 10, Thickness);
+			DrawDebugLine(CurrentWorld, FirstPoint, SecondPoint, Color, false, Time, 10, Thickness);
 			SecondPoint = FirstPoint;
 		}
 	}

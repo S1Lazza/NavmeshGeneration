@@ -5,8 +5,10 @@
 #include "CoreMinimal.h"
 #include "NavigationData.h"
 #include "PolygonMesh.h"
-#include "NavMeshGenerator.h"
 #include "CustomNavigationData.generated.h"
+
+class FNavMeshGenerator;
+class ANavMeshController;
 
 UCLASS()
 class NAVMESH_GENERATION_API ACustomNavigationData : public ANavigationData
@@ -21,6 +23,13 @@ public:
 	virtual void ConditionalConstructGenerator() override;
 
 	virtual UPrimitiveComponent* ConstructRenderingComponent() override;
+
+	void CreateNavmeshController();
+
+	void UpdateControllerPosition();
+
+	UPROPERTY()
+	ANavMeshController* NavMeshController;
 
 	TArray<FPolygonData> ResultingPoly;
 };

@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Contour.generated.h"
 
-class AOpenHeightfield;
+class UOpenHeightfield;
 class UOpenSpan;
 
 USTRUCT()
@@ -29,25 +29,23 @@ struct FContourVertexData
 };
 
 UCLASS()
-class NAVMESH_GENERATION_API AContour : public AActor
+class NAVMESH_GENERATION_API UContour : public UObject
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	AContour();
-
-	void Tick(float DeltaTime) override;
+	UContour() {};
 
 	//Initialize the base data of the countour using the one retrieved from the Height and Open fields
-	void Init(const AOpenHeightfield* OpenHeightfield);
+	void Init(const UOpenHeightfield* OpenHeightfield);
 
 	//Generate the countour of the region
-	void GenerateContour(const AOpenHeightfield* OpenHeightfield);
+	void GenerateContour(const UOpenHeightfield* OpenHeightfield);
 
 	//TODO: Double check the way in which the region spans are checked, there's code you can reuse
 	//Check if the axis neighbor of a specific span belong or not to the same region the span considered is in - the span in the NULL_REGIOn are skipped
-	void FindNeighborRegionConnection(const AOpenHeightfield* OpenHeightfield, int& NumberOfContourDiscarded);
+	void FindNeighborRegionConnection(const UOpenHeightfield* OpenHeightfield, int& NumberOfContourDiscarded);
 
 	//Build the raw countour of a region, by iterating through all the border spans of it
 	void BuildRawContours(UOpenSpan* Span, const int StartDir, bool& OnlyNullRegionConnection, TArray<FContourVertexData>& RawVertices);
@@ -73,17 +71,13 @@ public:
 	int GetCornerHeightIndex(UOpenSpan* Span, const int NeighborDir);
 
 	//Draw the raw contour of the region passed in
-	void DrawRegionRawContour(TArray<FContourVertexData>& Vertices);
+	void DrawRegionRawContour();
 
 	//Vertices representing the simplified contour
 	TArray<FContourVertexData> SimplifiedVertices;
 
 	//Total number of regions
 	int RegionCount;
-
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
 
 private:
 	//The maximum distance the edge of the contour may deviate from the source geometry - less the distance, more precise and intense the calculation
@@ -105,4 +99,6 @@ private:
 
 	//Region ID to which the countour refer to
 	int RegionID;
+
+	UWorld* CurrentWorld;
 };

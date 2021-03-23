@@ -25,6 +25,8 @@ bool FNavMeshGenerator::RebuildAll()
 {
 	if (NavigationMesh->GetGenerator())
 	{
+		NavigationMesh->CreateNavmeshController();
+		NavigationMesh->UpdateControllerPosition();
 		GatherValidOverlappingGeometries();
 		GenerateNavmesh();
 		return true;
@@ -39,6 +41,8 @@ void FNavMeshGenerator::RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& Di
 	//TODO: Move the enabling in a different place, ideally inside a controller with all the other parameters
 	if (NavigationMesh->GetGenerator() && EnableDirtyAreasRebuild)
 	{
+		NavigationMesh->CreateNavmeshController();
+		NavigationMesh->UpdateControllerPosition();
 		GatherValidOverlappingGeometries();
 		GenerateNavmesh();
 	}
@@ -94,15 +98,13 @@ void FNavMeshGenerator::GenerateNavmesh()
 	FVector SpawnLocation = NavBounds.GetCenter();
 
 	ClearDebugLines(World);
+	
+	USolidHeightfield* SolidHF = NewObject<USolidHeightfield>(USolidHeightfield::StaticClass());
+	UOpenHeightfield* OpenHF = NewObject<UOpenHeightfield>(UOpenHeightfield::StaticClass());
+	SolidHF->CurrentWorld = World;
 
-	//Initialize spawn parameters, needed to create a new instance of the actors (the always spawn flag is used for safety purposes)
-	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	ASolidHeightfield* SolidHF = World->SpawnActor<ASolidHeightfield>(SpawnLocation, FRotator(0.f, 0.f, 0.f), SpawnInfo);
-	AOpenHeightfield* OpenHF = World->SpawnActor<AOpenHeightfield>(SpawnLocation, FRotator(0.f, 0.f, 0.f), SpawnInfo);
-	AContour* Contour = World->SpawnActor<AContour>(SpawnLocation, FRotator(0.f, 0.f, 0.f), SpawnInfo);
-	APolygonMesh* PolygonMesh = World->SpawnActor<APolygonMesh>(SpawnLocation, FRotator(0.f, 0.f, 0.f), SpawnInfo);
+	UContour* Contour = NewObject<UContour>(UContour::StaticClass());
+	UPolygonMesh* PolygonMesh = NewObject<UPolygonMesh>(UPolygonMesh::StaticClass());
 
 	FVector BoxBoundCoord = NavBounds.GetExtent();
 	float MaxCoord = FMath::Max(BoxBoundCoord.X, BoxBoundCoord.Y);
@@ -120,7 +122,7 @@ void FNavMeshGenerator::GenerateNavmesh()
 	CreatePolygonMesh(PolygonMesh, Contour, OpenHF);
 }
 
-void FNavMeshGenerator::CreateSolidHeightfield(ASolidHeightfield* SolidHeightfield, const UStaticMeshComponent* Mesh)
+void FNavMeshGenerator::CreateSolidHeightfield(USolidHeightfield* SolidHeightfield, const UStaticMeshComponent* Mesh)
 {
 	TArray<FVector> Vertices;
 	TArray<int> Indices;
@@ -143,7 +145,7 @@ void FNavMeshGenerator::CreateSolidHeightfield(ASolidHeightfield* SolidHeightfie
 	/*SolidHeightfield->DrawDebugSpanData();*/
 }
 
-void FNavMeshGenerator::CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield, ASolidHeightfield* SolidHeightfield, bool PerformFullGeneration)
+void FNavMeshGenerator::CreateOpenHeightfield(UOpenHeightfield* OpenHeightfield, USolidHeightfield* SolidHeightfield, bool PerformFullGeneration)
 {
 	OpenHeightfield->Init(SolidHeightfield);
 	OpenHeightfield->FindOpenSpanData(SolidHeightfield);
@@ -159,21 +161,21 @@ void FNavMeshGenerator::CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield,
 		//TODO: There's an infinite loop when the MinUnconnectedRegion parameter is set to 0 or 1, check why
 		/*OpenHeightfield->HandleSmallRegions();*/
 		/*OpenHeightfield->DrawDebugRegions(false, true);*/
-		SolidHeightfield->FreeSpanData();
 	}
 }
 
-void FNavMeshGenerator::CreateContour(AContour* Contour, AOpenHeightfield* OpenHeightfield)
+void FNavMeshGenerator::CreateContour(UContour* Contour, UOpenHeightfield* OpenHeightfield)
 {
 	Contour->Init(OpenHeightfield);
 	Contour->GenerateContour(OpenHeightfield);
-	OpenHeightfield->FreeSpanData();
+	Contour->DrawRegionRawContour();
 }
 
-void FNavMeshGenerator::CreatePolygonMesh(APolygonMesh* PolyMesh, const AContour* Contour, const AOpenHeightfield* OpenHeightfield)
+void FNavMeshGenerator::CreatePolygonMesh(UPolygonMesh* PolyMesh, const UContour* Contour, const UOpenHeightfield* OpenHeightfield)
 {
 	PolyMesh->Init(OpenHeightfield);
 	PolyMesh->GeneratePolygonMesh(Contour, true, 1);
+	PolyMesh->DrawDebugPolyMeshPolys();
 	PolyMesh->SendDataToNavmesh(NavigationMesh->ResultingPoly);
 }
 
@@ -185,6 +187,11 @@ void FNavMeshGenerator::ClearDebugLines(UWorld* CurrentWorld)
 void FNavMeshGenerator::SetNavmesh(ACustomNavigationData* NavMesh)
 {
 	NavigationMesh = NavMesh;
-	NavBounds = NavigationMesh->GetNavigableBounds()[0];
+}
+
+void FNavMeshGenerator::SetNavBounds(ACustomNavigationData* NavMesh)
+{
+	//Currently only the first bound is assigned to work with the custom navmesh
+	NavBounds = NavMesh->GetNavigableBounds()[0];
 }
 

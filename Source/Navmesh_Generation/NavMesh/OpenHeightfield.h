@@ -9,26 +9,20 @@
 
 #define REGION_MAX_BORDER 10000
 
-class ASolidHeightfield;
+class USolidHeightfield;
 class URegion;
 
 UCLASS()
-class NAVMESH_GENERATION_API AOpenHeightfield : public ABaseHeightfield
+class NAVMESH_GENERATION_API UOpenHeightfield : public UBaseHeightfield
 {
 	GENERATED_BODY()
 	
 public:
-
-	AOpenHeightfield();
-
-	// Called every frame
-	void Tick(float DeltaTime) override;
-
 	//Initialize the default value for the openfield based on the ones retrieved from the solid
-	void Init(const ASolidHeightfield* SolidHeightfield);
+	void Init(const USolidHeightfield* SolidHeightfield);
 
 	//Detect the open areas in the heighfield and add them to the openspan data container
-	void FindOpenSpanData(const ASolidHeightfield* SolidHeightfield);
+	void FindOpenSpanData(const USolidHeightfield* SolidHeightfield);
 
 	//Find and assign the neightbor spans of every span
 	//We only need to check and set the axis neighbor as the diagonal ones can be found by checking the axis neighbor of a neighbor span
@@ -75,8 +69,6 @@ public:
 
 	//Traverse the edge of a region and add all the neighbor connection found to the region connection array
 	void FindRegionConnections(UOpenSpan* Span, int NeighborDirection, TArray<int>& RegionConnection);
-	
-	void FreeSpanData();
 
 	//Draw the open span data
 	void DrawDebugSpanData();
@@ -91,10 +83,6 @@ public:
 
 	//Draw the region data
 	void DrawDebugRegions(const bool DebugNumbersVisible, const bool DebugPlanesVisible);
-
-protected:
-	// Called when the game starts or when spawned
-	void BeginPlay() override;
 
 private:
 	//Minimum distance from the border based on the data retrieved by looking at the DistanceToBorder value of the single spans
@@ -119,5 +107,5 @@ private:
 	UPROPERTY()
 	TMap<int, UOpenSpan*> Spans;
 
-	friend class AContour;
+	friend class UContour;
 };

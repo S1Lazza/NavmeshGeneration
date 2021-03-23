@@ -6,28 +6,13 @@
 #include "../Utility/UtilityDebug.h"
 #include "../Utility/UtilityGeneral.h"
 
-// Sets default values
-ASolidHeightfield::ASolidHeightfield()
+void USolidHeightfield::Init()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
-
+	CalculateWidthDepthHeight();
 	CalculateUpNormal();
 }
 
-// Called when the game starts or when spawned
-void ASolidHeightfield::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
-// Called every frame
-void ASolidHeightfield::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
-void ASolidHeightfield::DefineFieldsBounds(const FVector AreaCenter, const FVector AreaExtent)
+void USolidHeightfield::DefineFieldsBounds(const FVector AreaCenter, const FVector AreaExtent)
 {
 	BoundMin = AreaCenter - AreaExtent;
 	BoundMax = AreaCenter + AreaExtent;
@@ -36,10 +21,10 @@ void ASolidHeightfield::DefineFieldsBounds(const FVector AreaCenter, const FVect
 	CalculateWidthDepthHeight();
 
 	//Draw debug info relative to the bounding box surrounding the mesh
-	//UUtilityDebug::DrawMinMaxBox(GetWorld(), BoundMin, BoundMax, FColor::Red, 20.0f, 2.0f);
+	//UUtilityDebug::DrawMinMaxBox(CurrentWorld, BoundMin, BoundMax, FColor::Red, 20.0f, 2.0f);
 }
 
-void ASolidHeightfield::VoxelizeTriangles(const TArray<FVector>& Vertices, const TArray<int> Indices)
+void USolidHeightfield::VoxelizeTriangles(const TArray<FVector>& Vertices, const TArray<int> Indices)
 {
 	const float InvertCellSize = 1 / CellSize;
 	const float InvertCellHeight = 1 / CellHeight;
@@ -83,10 +68,10 @@ void ASolidHeightfield::VoxelizeTriangles(const TArray<FVector>& Vertices, const
 		}
 
 		//Draw debug info relative to the polygon of the mesh  
-		/*UUtilityDebug::DrawMeshFaces(GetWorld(), PolyVertices, FColor::Blue, 20, 1.0f);*/
+		/*UUtilityDebug::DrawMeshFaces(CurrentWorld, PolyVertices, FColor::Blue, 20, 1.0f);*/
 
 		//Draw debug info relative the the bounding box delimiting the polygon 
-		/*UUtilityDebug::DrawMinMaxBox(GetWorld(), TriBoundsMin, TriBoundsMax, FColor::Red, 20.0f, 1.0f);*/
+		/*UUtilityDebug::DrawMinMaxBox(CurrentWorld, TriBoundsMin, TriBoundsMax, FColor::Red, 20.0f, 1.0f);*/
 
 		//Based on the bounding box data found, retrieve the width and depth and height covered by the cells inside it
 		int TriWidthMin = int((TriBoundsMin.X - BoundMin.X) * InvertCellSize);
@@ -130,7 +115,7 @@ void ASolidHeightfield::VoxelizeTriangles(const TArray<FVector>& Vertices, const
 				}
 
 				//Draw debug info relative to the clipped polygon inside the cell
-				/*UUtilityDebug::DrawPolygon(GetWorld(), ClippedPolygonVertices, FColor::Blue, 20.0f, 1.0f);*/
+				/*UUtilityDebug::DrawPolygon(CurrentWorld, ClippedPolygonVertices, FColor::Blue, 20.0f, 1.0f);*/
 
 				//Based on the clipped vertex coordinates, find the z axis range for the cell
 				//Default value to the first vertex
@@ -176,14 +161,14 @@ void ASolidHeightfield::VoxelizeTriangles(const TArray<FVector>& Vertices, const
 					FVector CellMinDebug = FVector(CellMinCoord.X, CellMinCoord.Y, BoundMin.Z + CellSize * It);
 					FVector CellMaxDebug = FVector(CellMaxCoord.X, CellMaxCoord.Y, BoundMin.Z + CellSize * It + CellSize);
 
-					UUtilityDebug::DrawMinMaxBox(GetWorld(), CellMinDebug, CellMaxDebug, FColor::Green, 20.0f, 0.5f);
+					UUtilityDebug::DrawMinMaxBox(CurrentWorld, CellMinDebug, CellMaxDebug, FColor::Green, 20.0f, 0.5f);
 				}		*/	
 			}
 		}
 	}
 }
 
-void ASolidHeightfield::FindGeometryHeight(const TArray<FVector>& Vertices, float& MinHeight, float& MaxHeight)
+void USolidHeightfield::FindGeometryHeight(const TArray<FVector>& Vertices, float& MinHeight, float& MaxHeight)
 {
 	//Assign the bound min and max to the coordinates of the first vertex
 	MinHeight = Vertices[0].Z;
@@ -197,7 +182,7 @@ void ASolidHeightfield::FindGeometryHeight(const TArray<FVector>& Vertices, floa
 	}
 }
 
-void ASolidHeightfield::ClipVersusPlane(TArray<FVector>& Vertices, FVector MinBound, FVector MaxBound, BoxSide Side)
+void USolidHeightfield::ClipVersusPlane(TArray<FVector>& Vertices, FVector MinBound, FVector MaxBound, BoxSide Side)
 {
 	int VerticesNumber = Vertices.Num();
 
@@ -252,7 +237,7 @@ void ASolidHeightfield::ClipVersusPlane(TArray<FVector>& Vertices, FVector MinBo
 	Vertices = VerticesOut;
 }
 
-void ASolidHeightfield::ClipPolygon(TArray<FVector>& Vertices, const FVector MinBound, const FVector MaxBound)
+void USolidHeightfield::ClipPolygon(TArray<FVector>& Vertices, const FVector MinBound, const FVector MaxBound)
 {
 	if (Vertices.Num() > 0)
 	{
@@ -265,7 +250,7 @@ void ASolidHeightfield::ClipPolygon(TArray<FVector>& Vertices, const FVector Min
 	}
 }
 
-int ASolidHeightfield::InsideClippingPlane(const FVector Vertex, const FVector MinBound, const FVector MaxBound, const BoxSide Side)
+int USolidHeightfield::InsideClippingPlane(const FVector Vertex, const FVector MinBound, const FVector MaxBound, const BoxSide Side)
 {
 	//Check if the point is inside the bounds delimited by every plane
 	//For each plane we only care about the coordinate of the axis perpendicular to it
@@ -293,7 +278,7 @@ int ASolidHeightfield::InsideClippingPlane(const FVector Vertex, const FVector M
 	return -1;
 }
 
-FVector ASolidHeightfield::FindPlaneIntersection(const FVector V0, const FVector V1, const FVector MinBound, const FVector MaxBound, const BoxSide Side)
+FVector USolidHeightfield::FindPlaneIntersection(const FVector V0, const FVector V1, const FVector MinBound, const FVector MaxBound, const BoxSide Side)
 {
 	FVector IntersectionPoint(0.f, 0.f, 0.f);
 	FVector PlaneOrigin(0.f, 0.f, 0.f);
@@ -345,7 +330,7 @@ FVector ASolidHeightfield::FindPlaneIntersection(const FVector V0, const FVector
 	return IntersectionPoint;
 }
 
-PolygonType ASolidHeightfield::FilterWalkablePolygon(const TArray<FVector>& Vertices)
+PolygonType USolidHeightfield::FilterWalkablePolygon(const TArray<FVector>& Vertices)
 {
 	FVector DiffAB = Vertices[1] - Vertices[0];
 	FVector DiffAC = Vertices[2] - Vertices[0];
@@ -362,7 +347,7 @@ PolygonType ASolidHeightfield::FilterWalkablePolygon(const TArray<FVector>& Vert
 	return PolygonType::UNWALKABLE;
 }
 
-void ASolidHeightfield::CalculateUpNormal()
+void USolidHeightfield::CalculateUpNormal()
 {
 	float SlopeToRadians = FMath::Abs(MaxTraversableAngle / 180.f * PI);
 	UpNormal =FMath::Cos(SlopeToRadians);
@@ -370,7 +355,7 @@ void ASolidHeightfield::CalculateUpNormal()
 	//GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, FString::SanitizeFloat(UpNormal));
 }
 
-bool ASolidHeightfield::AddSpanData(int WidthIndex, int DepthIndex, int HeightIndexMin, int HeightIndexMax, PolygonType Type)
+bool USolidHeightfield::AddSpanData(int WidthIndex, int DepthIndex, int HeightIndexMin, int HeightIndexMax, PolygonType Type)
 {
 	//Check the boundaries of cells passed in and ignore them if they exceed them
 	if (WidthIndex < 0 || WidthIndex >= Width || DepthIndex < 0 || DepthIndex >= Depth)
@@ -518,12 +503,7 @@ bool ASolidHeightfield::AddSpanData(int WidthIndex, int DepthIndex, int HeightIn
 	return false;
 }
 
-void ASolidHeightfield::FreeSpanData()
-{
-	Spans.Empty();
-}
-
-void ASolidHeightfield::DrawDebugSpanData()
+void USolidHeightfield::DrawDebugSpanData()
 {
 	//Iterate through all the cells
 	for (int i = 0; i < Depth; i++)
@@ -552,7 +532,7 @@ void ASolidHeightfield::DrawDebugSpanData()
 					{
 						SpanLineColor = FColor::Red;
 					}
-					UUtilityDebug::DrawMinMaxBox(GetWorld(), SpanMinCoord, SpanMaxCoord, SpanLineColor, 20.0f, 0.5f);
+					UUtilityDebug::DrawMinMaxBox(CurrentWorld, SpanMinCoord, SpanMaxCoord, SpanLineColor, 20.0f, 0.5f);
 
 					Span = Span->nextSpan;
 
@@ -562,7 +542,7 @@ void ASolidHeightfield::DrawDebugSpanData()
 	}
 }
 
-void ASolidHeightfield::MarkLowHeightSpan()
+void USolidHeightfield::MarkLowHeightSpan()
 {
 	//Iterate through all the base span
 	for (auto& Span : Spans)
@@ -605,7 +585,7 @@ void ASolidHeightfield::MarkLowHeightSpan()
 	}
 }
 
-void ASolidHeightfield::MarkLedgeSpan()
+void USolidHeightfield::MarkLedgeSpan()
 {
 	//Iterate through all the base span
 	for (auto& Span : Spans)

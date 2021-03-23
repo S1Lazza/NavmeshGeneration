@@ -8,17 +8,11 @@
 
 
 UCLASS(Abstract)
-class NAVMESH_GENERATION_API ABaseHeightfield : public AActor
+class NAVMESH_GENERATION_API UBaseHeightfield : public UObject
 {
 	GENERATED_BODY()
 
 public:
-
-	ABaseHeightfield();
-
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
 	//Calculated width, depth, height of the heightfield based on the cellsize and cellheight passed in
 	void CalculateWidthDepthHeight();
 
@@ -69,7 +63,5 @@ public:
 	//Closest distance any part of a mesh can get to an obstruction in the source geometry
 	int TraversableAreaBorderSize = 1;
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	UWorld* CurrentWorld;
 };

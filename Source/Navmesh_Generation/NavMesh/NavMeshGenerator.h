@@ -8,13 +8,11 @@
 #include "Math/Box.h"
 #include "AI/Navigation/NavigationTypes.h"
 
-class UBillboardComponent;
-class ASolidHeightfield;
-class AOpenHeightfield;
-class AContour;
-class APolygonMesh;
+class USolidHeightfield;
+class UOpenHeightfield;
+class UContour;
+class UPolygonMesh;
 class ACustomNavigationData;
-
 
 class NAVMESH_GENERATION_API FNavMeshGenerator : public FNavDataGenerator
 {
@@ -34,18 +32,22 @@ public:
 	void GenerateNavmesh();
 
 	////Create the solid heightfield and return the voxel data
-	void CreateSolidHeightfield(ASolidHeightfield* SolidHeightfield, const UStaticMeshComponent* Mesh);
+	void CreateSolidHeightfield(USolidHeightfield* SolidHeightfield, const UStaticMeshComponent* Mesh);
 
 	////Create an open heightfield based on the data retrieved from the solid one and return it
-	void CreateOpenHeightfield(AOpenHeightfield* OpenHeightfield, ASolidHeightfield* SolidHeightfield, bool PerformFullGeneration);
+	void CreateOpenHeightfield(UOpenHeightfield* OpenHeightfield, USolidHeightfield* SolidHeightfield, bool PerformFullGeneration);
 
-	void CreateContour(AContour* Contour, AOpenHeightfield* OpenHeightfield);
+	//Create the contours that define the traversable area of the geometries
+	void CreateContour(UContour* Contour, UOpenHeightfield* OpenHeightfield);
 
-	void CreatePolygonMesh(APolygonMesh* PolyMesh, const AContour* Contour, const AOpenHeightfield* OpenHeightfield);
+	//Create the polygons forming the navmesh using the contours data
+	void CreatePolygonMesh(UPolygonMesh* PolyMesh, const UContour* Contour, const UOpenHeightfield* OpenHeightfield);
 
 	void ClearDebugLines(UWorld* CurrentWorld);
 
 	void SetNavmesh(ACustomNavigationData* NavMesh);
+
+	void SetNavBounds(ACustomNavigationData* NavMesh);
 
 private:
 	FBox NavBounds;

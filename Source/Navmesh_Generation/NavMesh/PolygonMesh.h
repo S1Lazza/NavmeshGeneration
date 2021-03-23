@@ -9,7 +9,7 @@
 
 #define NULL_INDEX -1
 
-class AOpenHeightfield;
+class UOpenHeightfield;
 
 USTRUCT()
 struct FContourData
@@ -79,25 +79,19 @@ struct FPolygonData
 
 
 UCLASS()
-class NAVMESH_GENERATION_API APolygonMesh : public AActor
+class NAVMESH_GENERATION_API UPolygonMesh : public UObject
 {
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
-	APolygonMesh();
-
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
 	//Initialize the base data of the polygon mesh using the one retrieved from the Height and Open fields
-	void Init(const AOpenHeightfield* OpenHF);
+	void Init(const UOpenHeightfield* OpenHF);
 
 	//Split the contour vertices based on the region they belong to and return the size of the biggest one
-	int SplitContourDataByRegion(const AContour* Contour);
+	int SplitContourDataByRegion(const UContour* Contour);
 
 	//Generate the polygon mesh from the contour data provided
-	void GeneratePolygonMesh(const AContour* Contour, const bool PerformRecursiveMerging = false, const int NumberOfRecursion = 0);
+	void GeneratePolygonMesh(const UContour* Contour, const bool PerformRecursiveMerging = false, const int NumberOfRecursion = 0);
 
 	//Attempt to triangluate a polygon based on the vertex and indices data provided
 	//Return the total number of triangles generate, negative number if the generation fails
@@ -171,11 +165,7 @@ public:
 	void DrawDebugPolyMeshTriangles(const TArray<FVector>& Vertices, const TArray<int>& Triangles, const int NumberOfTriangles);
 
 	//Draw the merged polygons of the single contours
-	void DrawDebugPolyMeshPolys(const TArray<FVector>& Vertices, const TArray<int>& Polys);
-
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	void DrawDebugPolyMeshPolys();
 
 private:
 	//Min coordinates of the heightfield derived from the bounds of the navmesh area
@@ -193,7 +183,13 @@ private:
 	//Maximum number of vertices per polygon, clamped to be >= 3
 	int MaxVertexPerPoly = 6;
 
+	TArray<int> GlobalPolys;
+
+	TArray<FVector> GlobalVertices;
+
 	TArray<FContourData> ContoursData;
 
 	TArray<FPolygonData> ResultingPoly;
+
+	UWorld* CurrentWorld;
 };

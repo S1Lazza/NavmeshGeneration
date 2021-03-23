@@ -7,8 +7,6 @@
 #include "BaseHeightfield.h"
 #include "SolidHeightfield.generated.h"
 
-class OpenHeightfield;
-
 //Enum to specify the side of the box used in the calculation of the clipping algorithm
 UENUM()
 enum class BoxSide : uint8
@@ -22,16 +20,12 @@ enum class BoxSide : uint8
 };
 
 UCLASS(NotBlueprintable, NotPlaceable)
-class NAVMESH_GENERATION_API ASolidHeightfield : public ABaseHeightfield
+class NAVMESH_GENERATION_API USolidHeightfield : public UBaseHeightfield
 {
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
-	ASolidHeightfield();
-
-	// Called every frame
-	void Tick(float DeltaTime) override;
+	void Init();
 
 	//Calculate the min and max bounds of the field based on the geometry vertices
 	void DefineFieldsBounds(const FVector AreaCenter, const FVector AreaExtent);
@@ -67,8 +61,6 @@ public:
 	  Return true if the data is successfully added, otherwise false*/
 	bool AddSpanData(int WidthIndex, int DepthIndex, int HeightIndexMin, int HeightIndexMax, PolygonType Type);
 
-	void FreeSpanData();
-
 	//Draw the debug data relative to the spans composing the geometry
 	void DrawDebugSpanData();
 
@@ -81,10 +73,6 @@ public:
 	//Container of all the spans contained in the heightfield
 	UPROPERTY()
 	TMap<int, UHeightSpan*> Spans;
-
-protected:
-	// Called when the game starts or when spawned
-	void BeginPlay() override;
 
 private:
 	//Represent the plane normal calculated based on the MaxTraversableAngle

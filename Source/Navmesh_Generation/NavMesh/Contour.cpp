@@ -8,30 +8,9 @@
 #include "Components/TextRenderComponent.h"
 #include "../Utility/UtilityDebug.h"
 
-// Sets default values
-AContour::AContour()
+void UContour::Init(const UOpenHeightfield* OpenHeightfield)
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
-}
-
-// Called when the game starts or when spawned
-void AContour::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-// Called every frame
-void AContour::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
-void AContour::Init(const AOpenHeightfield* OpenHeightfield)
-{
+	CurrentWorld = OpenHeightfield->CurrentWorld;
 	BoundMin = OpenHeightfield->BoundMin;
 	BoundMax = OpenHeightfield->BoundMax;
 	CellSize = OpenHeightfield->CellSize;
@@ -39,7 +18,7 @@ void AContour::Init(const AOpenHeightfield* OpenHeightfield)
 	RegionCount = OpenHeightfield->RegionCount;
 }
 
-void AContour::GenerateContour(const AOpenHeightfield* OpenHeightfield)
+void UContour::GenerateContour(const UOpenHeightfield* OpenHeightfield)
 {
 	int DiscardedCountour = 0;
 
@@ -83,11 +62,9 @@ void AContour::GenerateContour(const AOpenHeightfield* OpenHeightfield)
 		} 
 		while (CurrentSpan);
 	}
-
-	DrawRegionRawContour(SimplifiedVertices);
 }
 
-void AContour::FindNeighborRegionConnection(const AOpenHeightfield* OpenHeightfield, int& NumberOfContourDiscarded)
+void UContour::FindNeighborRegionConnection(const UOpenHeightfield* OpenHeightfield, int& NumberOfContourDiscarded)
 {
 	for (auto Span : OpenHeightfield->Spans)
 	{
@@ -138,7 +115,7 @@ void AContour::FindNeighborRegionConnection(const AOpenHeightfield* OpenHeightfi
 	}
 }
 
-void AContour::BuildRawContours(UOpenSpan* Span, const int StartDir, bool& OnlyNullRegionConnection, TArray<FContourVertexData>& VerticesRaw)
+void UContour::BuildRawContours(UOpenSpan* Span, const int StartDir, bool& OnlyNullRegionConnection, TArray<FContourVertexData>& VerticesRaw)
 {
 	int IndexRaw = 0;
 
@@ -226,7 +203,7 @@ void AContour::BuildRawContours(UOpenSpan* Span, const int StartDir, bool& OnlyN
 	
 }
 
-void AContour::BuildSimplifiedCountour(const int CurrentRegionID, const bool OnlyNullRegionConnection, TArray<FContourVertexData>& VerticesRaw, TArray<FContourVertexData>& VerticesSimplified)
+void UContour::BuildSimplifiedCountour(const int CurrentRegionID, const bool OnlyNullRegionConnection, TArray<FContourVertexData>& VerticesRaw, TArray<FContourVertexData>& VerticesSimplified)
 {
 	//If the region considered is an island region, store the bottom-left and top-right vertices
 	if (OnlyNullRegionConnection)
@@ -277,21 +254,24 @@ void AContour::BuildSimplifiedCountour(const int CurrentRegionID, const bool Onl
 		}
 	}
 
+	//No point in executing additional calculations if there are no vertices to read the data from or to compare to
+	int RawVerticesCount = VerticesRaw.Num();
+	int SimplifiedVerticesCount = VerticesSimplified.Num();
+
+	if (RawVerticesCount == 0 || SimplifiedVerticesCount == 0)
+	{
+		return;
+	}
+
 	ReinsertNullRegionVertices(VerticesRaw, VerticesSimplified);
 	CheckNullRegionMaxEdge(VerticesRaw, VerticesSimplified);
 	RemoveDuplicatesVertices(VerticesSimplified);
 }
 
-void AContour::ReinsertNullRegionVertices(TArray<FContourVertexData>& VerticesRaw, TArray<FContourVertexData>& VerticesSimplified)
+void UContour::ReinsertNullRegionVertices(TArray<FContourVertexData>& VerticesRaw, TArray<FContourVertexData>& VerticesSimplified)
 {
 	int RawVerticesCount = VerticesRaw.Num();
 	int SimplifiedVerticesCount = VerticesSimplified.Num();
-
-	//No point in executing the calculation if there are no vertices to read the data from or to compare to
-	if (RawVerticesCount == 0 || SimplifiedVerticesCount == 0)
-	{
-		return;
-	}
 
 	//Iterate through all the vertices, checking one edge at time
 	for (int MandatoryIndex1 = 0; MandatoryIndex1 < SimplifiedVerticesCount; MandatoryIndex1++)
@@ -332,7 +312,7 @@ void AContour::ReinsertNullRegionVertices(TArray<FContourVertexData>& VerticesRa
 			/*float Deviation = FMath::PointDistToSegment(VerticesRaw[IndexTestVertex].Coordinate, VerticesSimplified[MandatoryIndex1].Coordinate, VerticesSimplified[MandatoryIndex2].Coordinate);*/
 
 			//According to the algorithm using the distance between the raw point considered and the segment should do the trick
-			//However I noticed that, in some cases this does not work (when you have a straight line of point equidistant from the raw one
+			//However I noticed that, in some cases this does not work (when you have a straight line of point equidistant from the raw one)
 			//If one is not valid all of them are not valid and therefore the line is removed
 			//For this reason the solution below is preferred
 			FVector EdgeMidpoint = (VerticesSimplified[MandatoryIndex1].Coordinate + VerticesSimplified[MandatoryIndex2].Coordinate) * 0.5f;
@@ -359,7 +339,7 @@ void AContour::ReinsertNullRegionVertices(TArray<FContourVertexData>& VerticesRa
 	}
 }
 
-void AContour::CheckNullRegionMaxEdge(TArray<FContourVertexData>& VerticesRaw, TArray<FContourVertexData>& VerticesSimplified)
+void UContour::CheckNullRegionMaxEdge(TArray<FContourVertexData>& VerticesRaw, TArray<FContourVertexData>& VerticesSimplified)
 {
 	//If the value to compare against is 0 or less there is no point in running the code
 	if (MaxEdgeLenght <= 0)
@@ -408,7 +388,7 @@ void AContour::CheckNullRegionMaxEdge(TArray<FContourVertexData>& VerticesRaw, T
 	}
 }
 
-void AContour::RemoveDuplicatesVertices(TArray<FContourVertexData>& VerticesSimplified)
+void UContour::RemoveDuplicatesVertices(TArray<FContourVertexData>& VerticesSimplified)
 {
 	int SimplifiedVerticesCount = VerticesSimplified.Num();
 
@@ -416,13 +396,8 @@ void AContour::RemoveDuplicatesVertices(TArray<FContourVertexData>& VerticesSimp
 	{
 		int NextIndex = (Index + 1) % SimplifiedVerticesCount;
 
-		float X1 = VerticesSimplified[Index].Coordinate.X;
-		float X2 = VerticesSimplified[NextIndex].Coordinate.X;
-		float Y1 = VerticesSimplified[Index].Coordinate.Y;
-		float Y2= VerticesSimplified[NextIndex].Coordinate.Y;
-
-		//Check if the X and Y coordinates of two consecutive vertices are equal
-		if (FMath::IsNearlyEqual(X1, X2, 0.5f) && FMath::IsNearlyEqual(Y1, Y2, 0.5f))
+		//Check if the locations of two consecutive vertices are equal
+		if (VerticesSimplified[Index].Coordinate == VerticesSimplified[NextIndex].Coordinate)
 		{
 			//If they are one of the vertices can be removed as it's a non needed duplicate
 			VerticesSimplified.RemoveAt(NextIndex);
@@ -431,7 +406,7 @@ void AContour::RemoveDuplicatesVertices(TArray<FContourVertexData>& VerticesSimp
 	}
 }
 
-int AContour::GetCornerHeightIndex(UOpenSpan* Span, const int NeighborDir)
+int UContour::GetCornerHeightIndex(UOpenSpan* Span, const int NeighborDir)
 {
 	//Set the max floor equal to the current span floor
 	int MaxFloor = Span->Min;
@@ -469,14 +444,14 @@ int AContour::GetCornerHeightIndex(UOpenSpan* Span, const int NeighborDir)
 	return MaxFloor;
 }
 
-void AContour::DrawRegionRawContour(TArray<FContourVertexData>& Vertices)
+void UContour::DrawRegionRawContour()
 {
 	TArray<FVector> TempContainer;
 	int LoopIndex = 1;
 
 	while (LoopIndex < RegionCount)
 	{
-		for (auto Vertex : Vertices)
+		for (auto Vertex : SimplifiedVertices)
 		{
 			if (Vertex.InternalRegionID == LoopIndex)
 			{
@@ -489,14 +464,14 @@ void AContour::DrawRegionRawContour(TArray<FContourVertexData>& Vertices)
 		//	/*FActorSpawnParameters SpawnInfo;
 		//	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-		//	ATextRenderActor* Text = GetWorld()->SpawnActor<ATextRenderActor>(TempContainer[Index], FRotator(0.f, 180.f, 0.f), SpawnInfo);
+		//	ATextRenderActor* Text = CurrentWorld->SpawnActor<ATextRenderActor>(TempContainer[Index], FRotator(0.f, 180.f, 0.f), SpawnInfo);
 		//	Text->GetTextRender()->SetText(FString::FromInt(Index));
 		//	Text->GetTextRender()->SetTextRenderColor(FColor::Red);*/
 
-		//	DrawDebugSphere(GetWorld(), TempContainer[Index], 4.f, 2.f, FColor::Red, false, 20.f, 0.f, 2.f);
+		//	DrawDebugSphere(CurrentWorld, TempContainer[Index], 4.f, 2.f, FColor::Red, false, 20.f, 0.f, 2.f);
 		//}
 
-		UUtilityDebug::DrawPolygon(GetWorld(), TempContainer, FColor::Blue, 20.0f, 2.0f);
+		UUtilityDebug::DrawPolygon(CurrentWorld, TempContainer, FColor::Blue, 20.0f, 2.0f);
 		TempContainer.Empty();
 		LoopIndex++;
 	}
