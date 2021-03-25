@@ -10,6 +10,7 @@
 #define NULL_INDEX -1
 
 class UOpenHeightfield;
+class ANavMeshController;
 
 USTRUCT()
 struct FContourData
@@ -85,7 +86,7 @@ class NAVMESH_GENERATION_API UPolygonMesh : public UObject
 	
 public:	
 	//Initialize the base data of the polygon mesh using the one retrieved from the Height and Open fields
-	void Init(const UOpenHeightfield* OpenHF);
+	void InitializeParameters(const ANavMeshController* NavController);
 
 	//Split the contour vertices based on the region they belong to and return the size of the biggest one
 	int SplitContourDataByRegion(const UContour* Contour);
@@ -168,20 +169,7 @@ public:
 	void DrawDebugPolyMeshPolys();
 
 private:
-	//Min coordinates of the heightfield derived from the bounds of the navmesh area
-	FVector BoundMin;
-
-	//Max coordinates of the heightfield derived from the bounds of the navmesh area
-	FVector BoundMax;
-
-	//Size of the single cells (voxels) in which the heightfiels is subdivided, the cells are squared
-	float CellSize;
-
-	//Height of the single cells (voxels) in which the heightfiels is subdivided
-	float CellHeight;
-
-	//Maximum number of vertices per polygon, clamped to be >= 3
-	int MaxVertexPerPoly = 6;
+	int MaxVertexPerPoly;
 
 	TArray<int> GlobalPolys;
 

@@ -34,34 +34,23 @@ public:
 	//Height of the solid heightfield in voxels
 	int Height;
 
-	//Size of the single cells (voxels) in which the heightfiels is subdivided, the cells are squared
-	float CellSize = 40.f;
-
-	//Height of the single cells (voxels) in which the heightfiels is subdivided
-	float CellHeight = 40.f;
-
 	//Min coordinates of the heightfield derived from the bounds of the navmesh area
 	FVector BoundMin;
 
 	//Max coordinates of the heightfield derived from the bounds of the navmesh area
 	FVector BoundMax;
 
-	//Represent the maximum slope angle (in degree) that is considered traversable
-	//Cells that pass the value specified are flagged as UNWALKABLE
-	float MaxTraversableAngle = 45.f;
+	float CellSize;
 
-	//Represent the minimum height distance between 2 spans (min of the upper and max of the lower one)
-	//that allow for the min one to be still considered walkable
-	float MinTraversableHeight = 100.f;
+	float CellHeight;
 
-	//Represents the maximum ledge height that is considered to be still traversable
-	float MaxTraversableStep = 50.f;
+	float MinTraversableHeight;
 
-	//The amount of smoothing to be performed when generating the distance field
-	int SmoothingThreshold = 2;
+	float MaxTraversableStep;
 
-	//Closest distance any part of a mesh can get to an obstruction in the source geometry
-	int TraversableAreaBorderSize = 1;
+	int SmoothingThreshold;
 
+	//A pointer to the world has been added for debug purposes to use all the intermediate debug functions present inside the classes
+	//UObjects by default don't have access to the world
 	UWorld* CurrentWorld;
 };

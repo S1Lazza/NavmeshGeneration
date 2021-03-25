@@ -3,6 +3,7 @@
 
 #include "PolygonMesh.h"
 #include "OpenHeightfield.h"
+#include "NavMeshController.h"
 #include "../Utility/UtilityDebug.h"
 #include "Engine/TextRenderActor.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -10,14 +11,11 @@
 #include "Components/TextRenderComponent.h"
 #include "Math/UnrealMathUtility.h"
 
-void UPolygonMesh::Init(const UOpenHeightfield* OpenHF)
+void UPolygonMesh::InitializeParameters(const ANavMeshController* NavController)
 {
-	CurrentWorld = OpenHF->CurrentWorld;
+	CurrentWorld = NavController->GetWorld();
+	MaxVertexPerPoly = NavController->MaxVertexPerPoly;
 	MaxVertexPerPoly = FMath::Max(3, MaxVertexPerPoly);
-	BoundMin = OpenHF->BoundMin;
-	BoundMax = OpenHF->BoundMax;
-	CellSize = OpenHF->CellSize;
-	CellHeight = OpenHF->CellHeight;
 }
 
 int UPolygonMesh::SplitContourDataByRegion(const UContour* Contour)

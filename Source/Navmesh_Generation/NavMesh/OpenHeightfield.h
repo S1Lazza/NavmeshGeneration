@@ -11,6 +11,7 @@
 
 class USolidHeightfield;
 class URegion;
+class ANavMeshController;
 
 UCLASS()
 class NAVMESH_GENERATION_API UOpenHeightfield : public UBaseHeightfield
@@ -19,7 +20,7 @@ class NAVMESH_GENERATION_API UOpenHeightfield : public UBaseHeightfield
 	
 public:
 	//Initialize the default value for the openfield based on the ones retrieved from the solid
-	void Init(const USolidHeightfield* SolidHeightfield);
+	void InitializeParameters(const USolidHeightfield* SolidHeightfield, const ANavMeshController* NavController);
 
 	//Detect the open areas in the heighfield and add them to the openspan data container
 	void FindOpenSpanData(const USolidHeightfield* SolidHeightfield);
@@ -84,6 +85,8 @@ public:
 	//Draw the region data
 	void DrawDebugRegions(const bool DebugNumbersVisible, const bool DebugPlanesVisible);
 
+	bool GetPerformFullGeneration() { return PerformFullGeneration; }
+
 private:
 	//Minimum distance from the border based on the data retrieved by looking at the DistanceToBorder value of the single spans
 	int MinBorderDistance = 0;
@@ -91,17 +94,18 @@ private:
 	//Maximum distance from the border based on the data retrieved by looking at the DistanceToBorder value of the single spans
 	int MaxBorderDistance = 0;
 
-	//Applies extra algorithms to regions to help prevent poorly formed regions from forming
-	bool UseConservativeExpansion = true;
-
 	//Total number of regions
 	int RegionCount = 0;
 
-	//Minimum span size of the island region to remove
-	int MinUnconnectedRegionSize = 4;
+	int MinUnconnectedRegionSize;
 
-	//Minimum span size of the region to merge
-	int MinMergeRegionSize = 20;
+	int MinMergeRegionSize;
+
+	int TraversableAreaBorderSize;
+
+	bool PerformFullGeneration;
+
+	bool UseConservativeExpansion;
 
 	//Container of all the openspans contained in the heightfield
 	UPROPERTY()

@@ -3,12 +3,17 @@
 
 #include "SolidHeightfield.h"
 #include "OpenHeightfield.h"
+#include "NavMeshController.h"
 #include "../Utility/UtilityDebug.h"
 #include "../Utility/UtilityGeneral.h"
 
-void USolidHeightfield::Init()
+void USolidHeightfield::InitializeParameters(const ANavMeshController* NavController)
 {
-	CalculateWidthDepthHeight();
+	CellSize = NavController->CellSize;
+	CellHeight = NavController->CellHeight;
+	MaxTraversableAngle = NavController->MaxTraversableAngle;
+	MinTraversableHeight = NavController->MinTraversableHeight;
+	MaxTraversableStep = NavController->MaxTraversableStep;
 	CalculateUpNormal();
 }
 
@@ -162,7 +167,7 @@ void USolidHeightfield::VoxelizeTriangles(const TArray<FVector>& Vertices, const
 					FVector CellMaxDebug = FVector(CellMaxCoord.X, CellMaxCoord.Y, BoundMin.Z + CellSize * It + CellSize);
 
 					UUtilityDebug::DrawMinMaxBox(CurrentWorld, CellMinDebug, CellMaxDebug, FColor::Green, 20.0f, 0.5f);
-				}		*/	
+				}*/	
 			}
 		}
 	}

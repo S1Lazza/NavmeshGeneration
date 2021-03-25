@@ -7,6 +7,8 @@
 #include "BaseHeightfield.h"
 #include "SolidHeightfield.generated.h"
 
+class ANavMeshController;
+
 //Enum to specify the side of the box used in the calculation of the clipping algorithm
 UENUM()
 enum class BoxSide : uint8
@@ -25,7 +27,7 @@ class NAVMESH_GENERATION_API USolidHeightfield : public UBaseHeightfield
 	GENERATED_BODY()
 	
 public:	
-	void Init();
+	void InitializeParameters(const ANavMeshController* NavController);
 
 	//Calculate the min and max bounds of the field based on the geometry vertices
 	void DefineFieldsBounds(const FVector AreaCenter, const FVector AreaExtent);
@@ -78,4 +80,6 @@ private:
 	//Represent the plane normal calculated based on the MaxTraversableAngle
 	//Every polygon with a up normal less than this value is considered UNWALKABLE
 	float UpNormal;
+
+	float MaxTraversableAngle;
 };

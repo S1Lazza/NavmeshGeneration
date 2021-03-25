@@ -23,12 +23,14 @@ void ACustomNavigationData::ConditionalConstructGenerator()
         TSharedPtr<FNavMeshGenerator, ESPMode::ThreadSafe> NewGen(new FNavMeshGenerator());
         NewGen.Get()->SetNavmesh(this);
         NewGen.Get()->SetNavBounds(this);
-        NavDataGenerator = MoveTemp(NewGen);
 
         CreateNavmeshController();
+        NavMeshController->SetNavGenerator(NewGen);
 
         NewGen.Get()->GatherValidOverlappingGeometries();
         NewGen.Get()->GenerateNavmesh();
+
+        NavDataGenerator = MoveTemp(NewGen);
     }
 }
 

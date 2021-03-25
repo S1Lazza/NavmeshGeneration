@@ -4,11 +4,12 @@
 #include "Contour.h"
 #include "OpenHeightfield.h"
 #include "OpenSpan.h"
+#include "NavMeshController.h"
 #include "Engine/TextRenderActor.h"
 #include "Components/TextRenderComponent.h"
 #include "../Utility/UtilityDebug.h"
 
-void UContour::Init(const UOpenHeightfield* OpenHeightfield)
+void UContour::InitializeParameters(const UOpenHeightfield* OpenHeightfield, const ANavMeshController* NavController)
 {
 	CurrentWorld = OpenHeightfield->CurrentWorld;
 	BoundMin = OpenHeightfield->BoundMin;
@@ -16,6 +17,9 @@ void UContour::Init(const UOpenHeightfield* OpenHeightfield)
 	CellSize = OpenHeightfield->CellSize;
 	CellHeight = OpenHeightfield->CellHeight;
 	RegionCount = OpenHeightfield->RegionCount;
+
+	EdgeMaxDeviation = NavController->EdgeMaxDeviation;
+	MaxEdgeLenght = NavController->MaxEdgeLenght;
 }
 
 void UContour::GenerateContour(const UOpenHeightfield* OpenHeightfield)
@@ -444,7 +448,7 @@ int UContour::GetCornerHeightIndex(UOpenSpan* Span, const int NeighborDir)
 	return MaxFloor;
 }
 
-void UContour::DrawRegionRawContour()
+void UContour::DrawRegionContour()
 {
 	TArray<FVector> TempContainer;
 	int LoopIndex = 1;

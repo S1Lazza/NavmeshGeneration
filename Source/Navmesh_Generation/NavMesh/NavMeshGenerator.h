@@ -12,6 +12,7 @@ class USolidHeightfield;
 class UOpenHeightfield;
 class UContour;
 class UPolygonMesh;
+class ANavMeshController;
 class ACustomNavigationData;
 
 class NAVMESH_GENERATION_API FNavMeshGenerator : public FNavDataGenerator
@@ -31,17 +32,19 @@ public:
 	////Generate the navmesh
 	void GenerateNavmesh();
 
+	void InitializeNavmeshObjects();
+
 	////Create the solid heightfield and return the voxel data
 	void CreateSolidHeightfield(USolidHeightfield* SolidHeightfield, const UStaticMeshComponent* Mesh);
 
 	////Create an open heightfield based on the data retrieved from the solid one and return it
-	void CreateOpenHeightfield(UOpenHeightfield* OpenHeightfield, USolidHeightfield* SolidHeightfield, bool PerformFullGeneration);
+	void CreateOpenHeightfield(UOpenHeightfield* OpenHeightfield, USolidHeightfield* SolidHeightfield, const ANavMeshController* NavController);
 
 	//Create the contours that define the traversable area of the geometries
-	void CreateContour(UContour* Contour, UOpenHeightfield* OpenHeightfield);
+	void CreateContour(UContour* MeshContour, UOpenHeightfield* OpenHeightfield);
 
 	//Create the polygons forming the navmesh using the contours data
-	void CreatePolygonMesh(UPolygonMesh* PolyMesh, const UContour* Contour, const UOpenHeightfield* OpenHeightfield);
+	void CreatePolygonMesh(UPolygonMesh* PolyMesh, const UContour* MeshContour, const UOpenHeightfield* OpenHeightfield);
 
 	void ClearDebugLines(UWorld* CurrentWorld);
 
@@ -49,9 +52,17 @@ public:
 
 	void SetNavBounds(ACustomNavigationData* NavMesh);
 
+	USolidHeightfield* GetSolidHeightfield() { return SolidHF; }
+	UOpenHeightfield* GetOpenHeightfield() { return OpenHF; }
+	UContour* GetContour() { return Contour; }
+	UPolygonMesh* GetPolygonMesh() { return PolygonMesh; }
+
 private:
 	FBox NavBounds;
 	TArray<UStaticMeshComponent*> Geometries;
 	ACustomNavigationData* NavigationMesh;
-	bool EnableDirtyAreasRebuild = true;
+	USolidHeightfield* SolidHF;
+	UOpenHeightfield* OpenHF;
+	UContour* Contour;
+	UPolygonMesh* PolygonMesh;
 };

@@ -8,6 +8,7 @@
 
 class UOpenHeightfield;
 class UOpenSpan;
+class ANavMeshController;
 
 USTRUCT()
 struct FContourVertexData
@@ -38,7 +39,7 @@ public:
 	UContour() {};
 
 	//Initialize the base data of the countour using the one retrieved from the Height and Open fields
-	void Init(const UOpenHeightfield* OpenHeightfield);
+	void InitializeParameters(const UOpenHeightfield* OpenHeightfield, const ANavMeshController* NavController);
 
 	//Generate the countour of the region
 	void GenerateContour(const UOpenHeightfield* OpenHeightfield);
@@ -71,7 +72,7 @@ public:
 	int GetCornerHeightIndex(UOpenSpan* Span, const int NeighborDir);
 
 	//Draw the raw contour of the region passed in
-	void DrawRegionRawContour();
+	void DrawRegionContour();
 
 	//Vertices representing the simplified contour
 	TArray<FContourVertexData> SimplifiedVertices;
@@ -80,21 +81,16 @@ public:
 	int RegionCount;
 
 private:
-	//The maximum distance the edge of the contour may deviate from the source geometry - less the distance, more precise and intense the calculation
-	float EdgeMaxDeviation = 60.f;
+	float EdgeMaxDeviation;
 
-	float MaxEdgeLenght = 60.f;
+	float MaxEdgeLenght;
 
-	//Min coordinates of the heightfield derived from the bounds of the navmesh area
 	FVector BoundMin;
 
-	//Max coordinates of the heightfield derived from the bounds of the navmesh area
 	FVector BoundMax;
 	
-	//Size of the single cells (voxels) in which the heightfiels is subdivided, the cells are squared
 	float CellSize;
 	
-	//Height of the single cells (voxels) in which the heightfiels is subdivided
 	float CellHeight;
 
 	//Region ID to which the countour refer to

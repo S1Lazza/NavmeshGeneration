@@ -3,6 +3,7 @@
 
 #include "OpenHeightfield.h"
 #include "SolidHeightfield.h"
+#include "NavMeshController.h"
 #include "Engine/TextRenderActor.h"
 #include "Region.h"
 #include "../Utility/MeshDebug.h"
@@ -10,13 +11,22 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "../Utility/UtilityDebug.h"
 
-void UOpenHeightfield::Init(const USolidHeightfield* SolidHeightfield)
+void UOpenHeightfield::InitializeParameters(const USolidHeightfield* SolidHeightfield, const ANavMeshController* NavController)
 {
 	CurrentWorld = SolidHeightfield->CurrentWorld;
 	BoundMin = SolidHeightfield->BoundMin;
 	BoundMax = SolidHeightfield->BoundMax;
 	CellSize = SolidHeightfield->CellSize;
 	CellHeight = SolidHeightfield->CellHeight;
+	MinTraversableHeight = SolidHeightfield->MinTraversableHeight;
+	MaxTraversableStep = SolidHeightfield->MaxTraversableStep;
+
+	TraversableAreaBorderSize = NavController->TraversableAreaBorderSize;
+	MinMergeRegionSize = NavController->MinMergeRegionSize;
+	MinUnconnectedRegionSize = NavController->MinUnconnectedRegionSize;
+	PerformFullGeneration = NavController->PerformFullGeneration;
+	UseConservativeExpansion = NavController->UseConservativeExpansion;
+
 	CalculateWidthDepthHeight();
 }
 
