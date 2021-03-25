@@ -11,13 +11,12 @@
 
 void UContour::InitializeParameters(const UOpenHeightfield* OpenHeightfield, const ANavMeshController* NavController)
 {
-	CurrentWorld = OpenHeightfield->CurrentWorld;
-	BoundMin = OpenHeightfield->BoundMin;
-	BoundMax = OpenHeightfield->BoundMax;
-	CellSize = OpenHeightfield->CellSize;
-	CellHeight = OpenHeightfield->CellHeight;
-	RegionCount = OpenHeightfield->RegionCount;
+	BoundMin = OpenHeightfield->GetBoundMin();
+	RegionCount = OpenHeightfield->GetRegionCount();
 
+	CurrentWorld = NavController->GetWorld();
+	CellSize = NavController->CellSize;
+	CellHeight = NavController->CellHeight;
 	EdgeMaxDeviation = NavController->EdgeMaxDeviation;
 	MaxEdgeLenght = NavController->MaxEdgeLenght;
 }
@@ -28,7 +27,7 @@ void UContour::GenerateContour(const UOpenHeightfield* OpenHeightfield)
 
 	FindNeighborRegionConnection(OpenHeightfield, DiscardedCountour);
 
-	for (auto Span : OpenHeightfield->Spans)
+	for (auto Span : OpenHeightfield->GetSpans())
 	{
 		UOpenSpan* CurrentSpan = Span.Value;
 
@@ -70,7 +69,7 @@ void UContour::GenerateContour(const UOpenHeightfield* OpenHeightfield)
 
 void UContour::FindNeighborRegionConnection(const UOpenHeightfield* OpenHeightfield, int& NumberOfContourDiscarded)
 {
-	for (auto Span : OpenHeightfield->Spans)
+	for (auto Span : OpenHeightfield->GetSpans())
 	{
 		UOpenSpan* CurrentSpan = Span.Value;
 

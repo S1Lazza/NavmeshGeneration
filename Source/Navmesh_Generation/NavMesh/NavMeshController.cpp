@@ -7,10 +7,12 @@
 #include "OpenHeightfield.h"
 #include "Contour.h"
 #include "PolygonMesh.h"
-#include "../Utility/MeshDebug.h"
-#include "Kismet/GameplayStatics.h"
-#include "Engine/TextRenderActor.h"
 #include "NavMeshGenerator.h"
+#include "../Utility/MeshDebug.h"
+
+#include "Kismet/GameplayStatics.h"
+#include "DrawDebugHelpers.h"
+#include "Engine/TextRenderActor.h"
 
 // Sets default values
 ANavMeshController::ANavMeshController()
@@ -38,7 +40,6 @@ void ANavMeshController::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 	
 	//TODO: Find a way to avoid rebuilding the navmesh every single time a debug option is checked/unchkeched
 	NavMeshGenerator.Get()->RebuildAll();
-	ToggleDebugOptions();
 }
 
 void ANavMeshController::InitComponents()
@@ -54,6 +55,11 @@ void ANavMeshController::InitComponents()
 void ANavMeshController::SetNavGenerator(TSharedPtr<FNavMeshGenerator, ESPMode::ThreadSafe> NavGenerator)
 {
 	NavMeshGenerator = NavGenerator;
+}
+
+void ANavMeshController::UpdateEditorPosition()
+{
+	SetActorLocation(NavMeshGenerator.Get()->GetNavBounds().GetCenter());
 }
 
 
@@ -79,9 +85,20 @@ void ANavMeshController::DeleteDebugText()
 	}
 }
 
-void ANavMeshController::ToggleDebugOptions()
+void ANavMeshController::ClearDebugLines()
 {
-	NavMeshGenerator->ClearDebugLines(GetWorld());
+	FlushPersistentDebugLines(GetWorld());
+}
+
+void ANavMeshController::DisplayDebugElements()
+{
+	UWorld* CurrentWorld = GetWorld();
+	if (!CurrentWorld)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Impossible to display debug elements, world is invalid"));
+	}
+
+	ClearDebugLines();
 	DeleteDebugPlanes();
 	DeleteDebugText();
 
@@ -113,5 +130,10 @@ void ANavMeshController::ToggleDebugOptions()
 	if (EnablePolyMeshDebug)
 	{
 		NavMeshGenerator->GetPolygonMesh()->DrawDebugPolyMeshPolys();
+	}
+
+	if (EnablePolyCentroidDebug)
+	{
+		NavMeshGenerator->GetPolygonMesh()->DrawPolygonCentroid();
 	}
 }

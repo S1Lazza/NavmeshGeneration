@@ -74,11 +74,8 @@ public:
 	//Draw the raw contour of the region passed in
 	void DrawRegionContour();
 
-	//Vertices representing the simplified contour
-	TArray<FContourVertexData> SimplifiedVertices;
-
-	//Total number of regions
-	int RegionCount;
+	const int GetRegionCount() const { return RegionCount; };
+	const TArray<FContourVertexData> GetSimplifiedVertices() const { return SimplifiedVertices; };
 
 private:
 	float EdgeMaxDeviation;
@@ -86,15 +83,20 @@ private:
 	float MaxEdgeLenght;
 
 	FVector BoundMin;
-
-	FVector BoundMax;
 	
 	float CellSize;
 	
 	float CellHeight;
 
+	int RegionCount;
+
 	//Region ID to which the countour refer to
 	int RegionID;
 
+	//Vertices representing the simplified contour
+	TArray<FContourVertexData> SimplifiedVertices;
+
+	//A pointer to the world has been added for debug purposes to use all the intermediate debug functions present inside the single methods
+	//UObjects by default don't have access to the world
 	UWorld* CurrentWorld;
 };

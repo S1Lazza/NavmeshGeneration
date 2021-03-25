@@ -87,6 +87,10 @@ public:
 
 	bool GetPerformFullGeneration() { return PerformFullGeneration; }
 
+	const int GetRegionCount() const { return RegionCount; };
+	const FVector GetBoundMin() const { return BoundMin; };
+	const TMap<int, UOpenSpan*> GetSpans() const { return Spans; };
+
 private:
 	//Minimum distance from the border based on the data retrieved by looking at the DistanceToBorder value of the single spans
 	int MinBorderDistance = 0;
@@ -107,9 +111,7 @@ private:
 
 	bool UseConservativeExpansion;
 
-	//Container of all the openspans contained in the heightfield
+	//Container of all the open spans contained in the heightfield
 	UPROPERTY()
 	TMap<int, UOpenSpan*> Spans;
-
-	friend class UContour;
 };

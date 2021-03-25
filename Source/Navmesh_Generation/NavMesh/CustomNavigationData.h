@@ -16,7 +16,7 @@ class NAVMESH_GENERATION_API ACustomNavigationData : public ANavigationData
 	GENERATED_BODY()
 
 public:
-	ACustomNavigationData();
+	ACustomNavigationData() {};
 
 	static FPathFindingResult FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query);
 
@@ -26,8 +26,12 @@ public:
 
 	void CreateNavmeshController();
 
-	void UpdateControllerPosition();
+	void SetResultingPoly(TArray<FPolygonData> NavPoly);
 
+	ANavMeshController* GetNavmeshController() const { return NavMeshController; };
+	TArray<FPolygonData> GetResultingPoly() const { return ResultingPoly; };
+
+private:
 	UPROPERTY()
 	ANavMeshController* NavMeshController;
 

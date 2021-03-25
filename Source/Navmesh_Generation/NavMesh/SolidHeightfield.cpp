@@ -9,6 +9,7 @@
 
 void USolidHeightfield::InitializeParameters(const ANavMeshController* NavController)
 {
+	CurrentWorld = NavController->GetWorld();
 	CellSize = NavController->CellSize;
 	CellHeight = NavController->CellHeight;
 	MaxTraversableAngle = NavController->MaxTraversableAngle;

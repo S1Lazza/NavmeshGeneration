@@ -25,6 +25,7 @@ public:
 	//Retrieve the adjacent grid location to a cell depth 
 	int GetDirOffSetDepth(const int Direction);
 
+protected:
 	//Width of the solid heightfield in voxels
 	int Width;
 
@@ -50,7 +51,7 @@ public:
 
 	int SmoothingThreshold;
 
-	//A pointer to the world has been added for debug purposes to use all the intermediate debug functions present inside the classes
+	//A pointer to the world has been added for debug purposes to use all the intermediate debug functions present inside the single methods
 	//UObjects by default don't have access to the world
 	UWorld* CurrentWorld;
 };

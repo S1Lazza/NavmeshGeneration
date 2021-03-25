@@ -34,7 +34,7 @@ public:
 		OpenList.Add(EndPoly);
 
 		//Ulity array to know the polygon laready traversed by the algorithm and that should be skipped during the iteration
-		for (int Index = 0; Index < Navmesh->ResultingPoly.Num(); Index++)
+		for (int Index = 0; Index < Navmesh->GetResultingPoly().Num(); Index++)
 		{
 			ClosedList.Add(false);
 		}
@@ -76,7 +76,7 @@ public:
 				}
 			}
 
-			CurrentNode = FindNewPathPolygon(Navmesh->ResultingPoly, CurrentNode->AdjacentPolygonList[MinIndex], CurrentMinF, CurrentMinG);
+			CurrentNode = FindNewPathPolygon(Navmesh->GetResultingPoly(), CurrentNode->AdjacentPolygonList[MinIndex], CurrentMinF, CurrentMinG);
 			OpenList.Add(CurrentNode);
 		}
 
@@ -127,9 +127,9 @@ public:
 		int PolyIndex = 0;
 		float MaxDistance = INT_MAX;
 
-		for (int Index = 0; Index < Navmesh->ResultingPoly.Num(); Index++)
+		for (int Index = 0; Index < Navmesh->GetResultingPoly().Num(); Index++)
 		{
-			float Distance = FVector::DistSquared(Navmesh->ResultingPoly[Index].Centroid, Position);
+			float Distance = FVector::DistSquared(Navmesh->GetResultingPoly()[Index].Centroid, Position);
 
 			if (Distance < MaxDistance)
 			{
@@ -138,13 +138,13 @@ public:
 			}
 		}
 
-		return &Navmesh->ResultingPoly[PolyIndex];
+		return &Navmesh->GetResultingPoly()[PolyIndex];
 	}
 
 	/*
 	* Compare the adjacent polygon data found to the original polygon array and retrieve the respective polygon from it
 	*/
-	static FPolygonData* FindNewPathPolygon(TArray<FPolygonData>& Polys, const FPolygonData& PolyToSearch, const float F, const float G)
+	static FPolygonData* FindNewPathPolygon(TArray<FPolygonData> Polys, const FPolygonData& PolyToSearch, const float F, const float G)
 	{
 		for (int Index = 0; Index < Polys.Num(); Index++)
 		{

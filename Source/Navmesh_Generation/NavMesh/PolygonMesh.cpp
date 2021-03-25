@@ -24,13 +24,13 @@ int UPolygonMesh::SplitContourDataByRegion(const UContour* Contour)
 	int MaxNumberOfVertices = 0;
 
 	//Stay in the loop as long as you have iterated through all the regions
-	while (LoopIndex < Contour->RegionCount)
+	while (LoopIndex < Contour->GetRegionCount())
 	{
 		FContourData NewContourData;
 		NewContourData.RegionID = LoopIndex;
 
 		//Iterate through all the vertices
-		for (auto Vertex : Contour->SimplifiedVertices)
+		for (auto Vertex : Contour->GetSimplifiedVertices())
 		{	
 			//If the current region ID is equal to the loopindex, increase the number of vertices
 			if (Vertex.InternalRegionID == LoopIndex)
@@ -50,7 +50,7 @@ int UPolygonMesh::SplitContourDataByRegion(const UContour* Contour)
 
 void UPolygonMesh::GeneratePolygonMesh(const UContour* Contour, bool PerformRecursiveMerging, int NumberOfRecursion)
 {
-	int TotalContourVertices = Contour->SimplifiedVertices.Num();
+	int TotalContourVertices = Contour->GetSimplifiedVertices().Num();
 
 	if (!Contour || TotalContourVertices == 0 || (TotalContourVertices - 1) >  UINT_MAX)
 	{
@@ -62,7 +62,7 @@ void UPolygonMesh::GeneratePolygonMesh(const UContour* Contour, bool PerformRecu
 	Contours processing variables
 	*/
 	int SourceVertexCount = TotalContourVertices;
-	int MaxPossiblePolygons = TotalContourVertices - (Contour->RegionCount * 2);
+	int MaxPossiblePolygons = TotalContourVertices - (Contour->GetRegionCount() * 2);
 	int MaxVertexPerContour = SplitContourDataByRegion(Contour);
 	int TotalVertexIndexCount = 0;
 	TArray<int> ContourToGlobalIndices;
@@ -479,7 +479,7 @@ void UPolygonMesh::SplitPolygonData(TArray<FVector>& Vertices, TArray<int>& Poly
 				FPolygonData NewPoly;
 				NewPoly.Vertices = TempArray;
 				NewPoly.Index = PolyIndex;
-				NewPoly.Centroid = FindPolygonCentroid(NewPoly.Vertices, true);
+				NewPoly.Centroid = FindPolygonCentroid(NewPoly.Vertices);
 				ResultingPoly.Add(NewPoly);
 				
 				TempArray.Empty();
@@ -532,13 +532,7 @@ void UPolygonMesh::BuildEdgeAdjacencyData()
 	}
 }
 
-void UPolygonMesh::SendDataToNavmesh(TArray<FPolygonData>& NavData)
-{
-	NavData = ResultingPoly;
-	ResultingPoly.Empty();
-}
-
-FVector UPolygonMesh::FindPolygonCentroid(TArray<FVector>& Vertices, bool ShowDebugInfo)
+FVector UPolygonMesh::FindPolygonCentroid(TArray<FVector>& Vertices)
 {
 	float SignedArea = 0.f;
 	int TotalVertices = Vertices.Num();
@@ -566,12 +560,7 @@ FVector UPolygonMesh::FindPolygonCentroid(TArray<FVector>& Vertices, bool ShowDe
 	SignedArea *= 0.5f;
 	Centroid.X = Centroid.X / (6 * SignedArea);
 	Centroid.Y = Centroid.Y / (6 * SignedArea);
-	Centroid.Z = (MaxZ + MinZ) / 2;
-
-	if (ShowDebugInfo)
-	{
-		DrawDebugSphere(CurrentWorld, Centroid, 5.f, 5, FColor::Red, false, 30.f, 30.f, 2.f);
-	}
+	Centroid.Z = (MaxZ + MinZ) * 0.5f;
 
 	return Centroid;
 }
@@ -787,6 +776,14 @@ void UPolygonMesh::DrawDebugPolyMeshPolys()
 				TempArray.Empty();
 			}
 		}
+	}
+}
+
+void UPolygonMesh::DrawPolygonCentroid()
+{
+	for (FPolygonData& Polygon : ResultingPoly)
+	{
+		DrawDebugSphere(CurrentWorld, Polygon.Centroid, 5.f, 5, FColor::Red, false, 30.f, 30.f, 2.f);
 	}
 }
 

@@ -72,9 +72,9 @@ public:
 	//Remove the traversable flag from spans that are close to a drop greater than the specified MaxTraversableStep
 	void MarkLedgeSpan();
 
-	//Container of all the spans contained in the heightfield
-	UPROPERTY()
-	TMap<int, UHeightSpan*> Spans;
+	const FVector GetBoundMin() const { return BoundMin; };
+	const FVector GetBoundMax() const { return BoundMax; };
+	const TMap<int, UHeightSpan*> GetSpans() const { return Spans; };
 
 private:
 	//Represent the plane normal calculated based on the MaxTraversableAngle
@@ -82,4 +82,8 @@ private:
 	float UpNormal;
 
 	float MaxTraversableAngle;
+
+	//Container of all the spans contained in the heightfield
+	UPROPERTY()
+	TMap<int, UHeightSpan*> Spans;
 };

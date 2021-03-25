@@ -116,10 +116,8 @@ public:
 	//Create connections between the adjacent shared edges
 	void BuildEdgeAdjacencyData();
 
-	void SendDataToNavmesh(TArray<FPolygonData>& NavData);
-
 	//Find the centroid of the polygons created
-	FVector FindPolygonCentroid(TArray<FVector>& Vertices, bool ShowDebugInfo = false);
+	FVector FindPolygonCentroid(TArray<FVector>& Vertices);
 
 	//Sort the vertex order of the merged polygons : https://math.stackexchange.com/questions/978642/how-to-sort-vertices-of-a-polygon-in-counter-clockwise-order
 	//This is required because the vertices possess a global indicizationa and the shared vertices between regions
@@ -168,6 +166,11 @@ public:
 	//Draw the merged polygons of the single contours
 	void DrawDebugPolyMeshPolys();
 
+	//Draw the centroid of the polygons froming the navmesh
+	void DrawPolygonCentroid();
+
+	TArray<FPolygonData> GetResultingPoly() const { return ResultingPoly; };
+
 private:
 	int MaxVertexPerPoly;
 
@@ -179,5 +182,7 @@ private:
 
 	TArray<FPolygonData> ResultingPoly;
 
+	//A pointer to the world has been added for debug purposes to use all the intermediate debug functions present inside the single methods
+	//UObjects by default don't have access to the world
 	UWorld* CurrentWorld;
 };

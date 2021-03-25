@@ -4,11 +4,6 @@
 #include "NavmeshController.h"
 #include "CustomNavigationData.h"
 
-ACustomNavigationData::ACustomNavigationData()
-{
-    /*FindPathImplementation = FindPath;*/
-}
-
 FPathFindingResult ACustomNavigationData::FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)
 {
     /*GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("Path requested"));*/
@@ -19,14 +14,17 @@ void ACustomNavigationData::ConditionalConstructGenerator()
 {
     if (!NavDataGenerator.IsValid())
     {
-        //Initialize the generator and the navmesh logic on the first opening of the editor
+        //Initialize the generator
         TSharedPtr<FNavMeshGenerator, ESPMode::ThreadSafe> NewGen(new FNavMeshGenerator());
         NewGen.Get()->SetNavmesh(this);
-        NewGen.Get()->SetNavBounds(this);
+        NewGen.Get()->SetNavBounds();
 
+        //Initialize the controller
         CreateNavmeshController();
         NavMeshController->SetNavGenerator(NewGen);
+        NavMeshController->UpdateEditorPosition();
 
+        //Construct the navmesh
         NewGen.Get()->GatherValidOverlappingGeometries();
         NewGen.Get()->GenerateNavmesh();
 
@@ -36,13 +34,12 @@ void ACustomNavigationData::ConditionalConstructGenerator()
 
 UPrimitiveComponent* ACustomNavigationData::ConstructRenderingComponent()
 {
-    GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("Update Display Debug"));
     return nullptr;
 }
 
 void ACustomNavigationData::CreateNavmeshController()
 {
-    //Make sure the controller is created only if it doesn't exist
+    //Make sure the controller is created only if it doesn't already exist
     if (!NavMeshController)
     {
         FActorSpawnParameters SpawnInfo;
@@ -53,7 +50,7 @@ void ACustomNavigationData::CreateNavmeshController()
     }
 }
 
-void ACustomNavigationData::UpdateControllerPosition()
+void ACustomNavigationData::SetResultingPoly(TArray<FPolygonData> NavPoly)
 {
-    NavMeshController->SetActorLocation(GetNavigableBounds()[0].GetCenter());
+    ResultingPoly = NavPoly;
 }

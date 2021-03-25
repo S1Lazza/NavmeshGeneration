@@ -34,14 +34,24 @@ public:
 	//Initialize utility components for better visualization inside the editor
 	void InitComponents();
 
-	void SetNavGenerator(TSharedPtr<FNavMeshGenerator, ESPMode::ThreadSafe> NavGenerator);
+	//Update the position of the actor to match the center of the nav bound
+	void UpdateEditorPosition();
 
+	//Display all the enabled debug elements
+	void DisplayDebugElements();
+
+	//Utility method to delete all the actors plane possibly generated within the DisplayDebugElements method 
 	void DeleteDebugPlanes();
 
+	//Utility method to delete all the actors text possibly generated within the DisplayDebugElements method 
 	void DeleteDebugText();
 
-	void ToggleDebugOptions();
+	//Utility method to delete all the lines possibly generated within the DisplayDebugElements method 
+	void ClearDebugLines();
 
+	void SetNavGenerator(TSharedPtr<FNavMeshGenerator, ESPMode::ThreadSafe> NavGenerator);
+
+	//Utility component to make the controller more visible within the editor
 	UPROPERTY(VisibleAnywhere)
 	UBillboardComponent* Icon;
 
@@ -76,6 +86,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|SolidHeightfield", meta = (DisplayName = "MaxTraversableStep"))
 	float MaxTraversableStep = 50.f;
 
+	//Enable the debug visualization of the heightspan
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|SolidHeightfield", meta = (DisplayName = "EnableHeightSpanDebug"))
 	bool EnableHeightSpanDebug = false;
 
@@ -103,15 +114,15 @@ public:
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|OpenHeightfield", meta = (DisplayName = "UseConservativeExpansion"))
 	bool UseConservativeExpansion = true;
 
-	//Specify if the generation of the Openfield must perform all the steps up to the region creation or stop at the open span creation
+	//Enable the debug visualization of the openspan
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|OpenHeightfield", meta = (DisplayName = "EnableOpenSpanData"))
 	bool EnableOpenSpanDebug = false;
 
-	//Specify if the generation of the Openfield must perform all the steps up to the region creation or stop at the open span creation
+	//Enable the debug visualization of the distance field
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|OpenHeightfield", meta = (DisplayName = "EnableDistanceFieldDebug"))
 	bool EnableDistanceFieldDebug = false;
 
-	//Specify if the generation of the Openfield must perform all the steps up to the region creation or stop at the open span creation
+	//Enable the debug visualization of the regions
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|OpenHeightfield", meta = (DisplayName = "EnableRegionsDebug"))
 	bool EnableRegionsDebug = false;
 
@@ -124,17 +135,21 @@ public:
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|Contour", meta = (DisplayName = "EdgeMaxDeviation"))
 	float MaxEdgeLenght = 60.f;
 
-	//Specify if the generation of the Openfield must perform all the steps up to the region creation or stop at the open span creation
+	//Enable the debug visualization of the contours
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|Contour", meta = (DisplayName = "EnableContourDebug"))
 	bool EnableContourDebug = false;
 
-	//Specify if the generation of the Openfield must perform all the steps up to the region creation or stop at the open span creation
+	//The maximum number of vertices per polygon for polygons generated during the voxel to polygon conversion process
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|PolygonMesh", meta = (DisplayName = "MaxVertexPerPoly"))
 	int MaxVertexPerPoly = 6;
 
-	//Specify if the generation of the Openfield must perform all the steps up to the region creation or stop at the open span creation
+	//Enable the debug visualization of the polygon forming the navmesh
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|PolygonMesh", meta = (DisplayName = "EnablePolyMeshDebug"))
 	bool EnablePolyMeshDebug = false;
+
+	//Enable the debug visualization of the polygon centroids
+	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|PolygonMesh", meta = (DisplayName = "EnablePolyCentroidDebug"))
+	bool EnablePolyCentroidDebug = false;
 
 private:
 	TSharedPtr<FNavMeshGenerator, ESPMode::ThreadSafe> NavMeshGenerator;

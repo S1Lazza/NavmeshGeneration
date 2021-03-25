@@ -13,13 +13,14 @@
 
 void UOpenHeightfield::InitializeParameters(const USolidHeightfield* SolidHeightfield, const ANavMeshController* NavController)
 {
-	CurrentWorld = SolidHeightfield->CurrentWorld;
-	BoundMin = SolidHeightfield->BoundMin;
-	BoundMax = SolidHeightfield->BoundMax;
-	CellSize = SolidHeightfield->CellSize;
-	CellHeight = SolidHeightfield->CellHeight;
-	MinTraversableHeight = SolidHeightfield->MinTraversableHeight;
-	MaxTraversableStep = SolidHeightfield->MaxTraversableStep;
+	BoundMin = SolidHeightfield->GetBoundMin();
+	BoundMax = SolidHeightfield->GetBoundMax();
+
+	CurrentWorld = NavController->GetWorld();
+	CellSize = NavController->CellSize;
+	CellHeight = NavController->CellHeight;
+	MinTraversableHeight = NavController->MinTraversableHeight;
+	MaxTraversableStep = NavController->MaxTraversableStep;
 
 	TraversableAreaBorderSize = NavController->TraversableAreaBorderSize;
 	MinMergeRegionSize = NavController->MinMergeRegionSize;
@@ -38,7 +39,7 @@ void UOpenHeightfield::FindOpenSpanData(const USolidHeightfield* SolidHeightfiel
 	}
 
 	//Iterate through the span of the solid heightfield
-	for (auto& It : SolidHeightfield->Spans)
+	for (auto& It : SolidHeightfield->GetSpans())
 	{
 		UHeightSpan* CurrentSpan = It.Value;
 

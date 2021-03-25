@@ -14,22 +14,19 @@
 #include "../Utility/UtilityDebug.h"
 #include "Kismet/KismetSystemLibrary.h"
 
-
-//// Sets default values
-FNavMeshGenerator::FNavMeshGenerator(ACustomNavigationData* InNavmesh)
-{
-	NavigationMesh = InNavmesh;
-	NavBounds = NavigationMesh->GetNavigableBounds()[0];
-}
-
 bool FNavMeshGenerator::RebuildAll()
 {
 	if (NavigationMesh->GetGenerator())
 	{
+		//This need to be called in case the controller is accidentally deleted
 		NavigationMesh->CreateNavmeshController();
-		NavigationMesh->UpdateControllerPosition();
+		NavigationMesh->GetNavmeshController()->UpdateEditorPosition();
+
 		GatherValidOverlappingGeometries();
 		GenerateNavmesh();
+
+		NavigationMesh->GetNavmeshController()->DisplayDebugElements();
+
 		return true;
 	}
 
@@ -39,19 +36,20 @@ bool FNavMeshGenerator::RebuildAll()
 void FNavMeshGenerator::RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas)
 {
 	//Naive implemetation as all the navmesh is rebuilt when a geometry is moved in the level
-	//TODO: Move the enabling in a different place, ideally inside a controller with all the other parameters
-	if (NavigationMesh->GetGenerator() && NavigationMesh->NavMeshController->EnableDirtyAreasRebuild)
+	if (NavigationMesh->GetGenerator() && NavigationMesh->GetNavmeshController()->EnableDirtyAreasRebuild)
 	{
 		NavigationMesh->CreateNavmeshController();
-		NavigationMesh->UpdateControllerPosition();
+		NavigationMesh->GetNavmeshController()->UpdateEditorPosition();
+
 		GatherValidOverlappingGeometries();
 		GenerateNavmesh();
+
+		NavigationMesh->GetNavmeshController()->DisplayDebugElements();
 	}
 }
 
 void FNavMeshGenerator::GatherValidOverlappingGeometries()
 {
-	ClearDebugLines(NavigationMesh->GetWorld());
 	Geometries.Empty();
 
 	TArray<AActor*> ValidGeometries;
@@ -92,33 +90,38 @@ void FNavMeshGenerator::GenerateNavmesh()
 {
 	if (Geometries.Num() == 0)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("No valid geometries detected inside the nav bound, navmesh data generation aborted"));
 		return;
 	}
 
 	InitializeNavmeshObjects();
 
+	SolidHF->InitializeParameters(NavigationMesh->GetNavmeshController());
+	
+	//Calculate the extension of the nav bound and pass the data found to the solidheightfield to determine the area covered by it
 	FVector NavCenter = NavBounds.GetCenter();
 	FVector BoxBoundCoord = NavBounds.GetExtent();
 	float MaxCoord = FMath::Max(BoxBoundCoord.X, BoxBoundCoord.Y);
 	FVector MaxBoxBoundsCoord(MaxCoord, MaxCoord, BoxBoundCoord.Z);
-
-	SolidHF->InitializeParameters(NavigationMesh->NavMeshController);
+	
 	SolidHF->DefineFieldsBounds(NavCenter, MaxBoxBoundsCoord);
 
 	for (UStaticMeshComponent* Mesh : Geometries)
 	{
-		CreateSolidHeightfield(SolidHF, Mesh);
+		CreateSolidHeightfield(Mesh);
 	}
 
-	CreateOpenHeightfield(OpenHF, SolidHF, NavigationMesh->NavMeshController);
-	CreateContour(Contour, OpenHF);
-	CreatePolygonMesh(PolygonMesh, Contour, OpenHF);
+	CreateOpenHeightfield();
+	CreateContour();
+	CreatePolygonMesh();
+
+	SendDataToNavmesh();
 }
 
 void FNavMeshGenerator::InitializeNavmeshObjects()
 {
+	//The objects are reinitialized every single time the navmesh is updated in editor for an easier cleanup of the intermediate data
 	SolidHF = NewObject<USolidHeightfield>(USolidHeightfield::StaticClass());
-	SolidHF->CurrentWorld = NavigationMesh->GetWorld();
 
 	OpenHF = NewObject<UOpenHeightfield>(UOpenHeightfield::StaticClass());
 
@@ -126,66 +129,62 @@ void FNavMeshGenerator::InitializeNavmeshObjects()
 	PolygonMesh = NewObject<UPolygonMesh>(UPolygonMesh::StaticClass());
 }
 
-void FNavMeshGenerator::CreateSolidHeightfield(USolidHeightfield* SolidHeightfield, const UStaticMeshComponent* Mesh)
+void FNavMeshGenerator::CreateSolidHeightfield(const UStaticMeshComponent* Mesh)
 {
 	TArray<FVector> Vertices;
 	TArray<int> Indices;
 
 	UUtilityGeneral::GetAllMeshVertices(Mesh, Vertices);
 	UUtilityGeneral::GetMeshIndices(Mesh, Indices);
+	
+	FString TextToDisplay = Mesh->GetOwner()->GetName();
+	FString AdditionalText = " has no geometry data to generate the solid heightfield";
+	TextToDisplay += AdditionalText;
 
 	if (Vertices.Num() == 0 || Indices.Num() == 0)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("No data to generate the solid heightfield"));
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *TextToDisplay);
 		return;
 	}
 
-	SolidHeightfield->VoxelizeTriangles(Vertices, Indices);
-	SolidHeightfield->MarkLowHeightSpan();
+	SolidHF->VoxelizeTriangles(Vertices, Indices);
+	SolidHF->MarkLowHeightSpan();
 
-	//TODO Currently the ledge spans are incorrectly filtered, need to check the method below
-	/*SolidHeightfield->MarkLedgeSpan();*/
-
-	/*SolidHeightfield->DrawDebugSpanData();*/
+	//TODO: Currently the ledge spans are incorrectly filtered, need to check the method below
+	/*SolidHF->MarkLedgeSpan();*/
 }
 
-void FNavMeshGenerator::CreateOpenHeightfield(UOpenHeightfield* OpenHeightfield, USolidHeightfield* SolidHeightfield, const ANavMeshController* NavController)
+void FNavMeshGenerator::CreateOpenHeightfield()
 {
-	OpenHeightfield->InitializeParameters(SolidHeightfield, NavController);
-	OpenHeightfield->FindOpenSpanData(SolidHeightfield);
-	/*OpenHeightfield->DrawDebugSpanData();*/
+	OpenHF->InitializeParameters(SolidHF, NavigationMesh->GetNavmeshController());
+	OpenHF->FindOpenSpanData(SolidHF);
 
-	if (OpenHeightfield->GetPerformFullGeneration())
+	if (OpenHF->GetPerformFullGeneration())
 	{
-		OpenHeightfield->GenerateNeightborLinks();
-		OpenHeightfield->GenerateDistanceField();
-		/*OpenHeightfield->DrawDistanceFieldDebugData(false, true);*/
-		OpenHeightfield->GenerateRegions();
+		OpenHF->GenerateNeightborLinks();
+		OpenHF->GenerateDistanceField();
+		OpenHF->GenerateRegions();
 
 		//TODO: There's an infinite loop when the MinUnconnectedRegion parameter is set to 0 or 1, check why
-		/*OpenHeightfield->HandleSmallRegions();*/
-		/*OpenHeightfield->DrawDebugRegions(false, true);*/
+		/*OpenHF->HandleSmallRegions();*/
 	}
 }
 
-void FNavMeshGenerator::CreateContour(UContour* MeshContour, UOpenHeightfield* OpenHeightfield)
+void FNavMeshGenerator::CreateContour()
 {
-	MeshContour->InitializeParameters(OpenHeightfield, NavigationMesh->NavMeshController);
-	MeshContour->GenerateContour(OpenHeightfield);
-	/*MeshContour->DrawRegionRawContour();*/
+	Contour->InitializeParameters(OpenHF, NavigationMesh->GetNavmeshController());
+	Contour->GenerateContour(OpenHF);
 }
 
-void FNavMeshGenerator::CreatePolygonMesh(UPolygonMesh* PolyMesh, const UContour* MeshContour, const UOpenHeightfield* OpenHeightfield)
+void FNavMeshGenerator::CreatePolygonMesh()
 {
-	PolyMesh->InitializeParameters(NavigationMesh->NavMeshController);
-	PolyMesh->GeneratePolygonMesh(MeshContour, true, 1);
-	/*PolyMesh->DrawDebugPolyMeshPolys();*/
-	PolyMesh->SendDataToNavmesh(NavigationMesh->ResultingPoly);
+	PolygonMesh->InitializeParameters(NavigationMesh->GetNavmeshController());
+	PolygonMesh->GeneratePolygonMesh(Contour, true, 1);
 }
 
-void FNavMeshGenerator::ClearDebugLines(UWorld* CurrentWorld)
+void FNavMeshGenerator::SendDataToNavmesh()
 {
-	FlushPersistentDebugLines(CurrentWorld);
+	NavigationMesh->SetResultingPoly(PolygonMesh->GetResultingPoly());
 }
 
 void FNavMeshGenerator::SetNavmesh(ACustomNavigationData* NavMesh)
@@ -193,9 +192,9 @@ void FNavMeshGenerator::SetNavmesh(ACustomNavigationData* NavMesh)
 	NavigationMesh = NavMesh;
 }
 
-void FNavMeshGenerator::SetNavBounds(ACustomNavigationData* NavMesh)
+void FNavMeshGenerator::SetNavBounds()
 {
 	//Currently only the first bound is assigned to work with the custom navmesh
-	NavBounds = NavMesh->GetNavigableBounds()[0];
+	NavBounds = NavigationMesh->GetNavigableBounds()[0];
 }
 
