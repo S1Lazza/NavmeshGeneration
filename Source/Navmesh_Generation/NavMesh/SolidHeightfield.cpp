@@ -538,7 +538,7 @@ void USolidHeightfield::DrawDebugSpanData()
 					{
 						SpanLineColor = FColor::Red;
 					}
-					UUtilityDebug::DrawMinMaxBox(CurrentWorld, SpanMinCoord, SpanMaxCoord, SpanLineColor, 20.0f, 0.5f);
+					UUtilityDebug::DrawMinMaxBox(CurrentWorld, SpanMinCoord, SpanMaxCoord, SpanLineColor, 20.0f, 2.f);
 
 					Span = Span->nextSpan;
 

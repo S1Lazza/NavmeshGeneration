@@ -276,69 +276,50 @@ void UContour::ReinsertNullRegionVertices(TArray<FContourVertexData>& VerticesRa
 	int RawVerticesCount = VerticesRaw.Num();
 	int SimplifiedVerticesCount = VerticesSimplified.Num();
 
-	//Iterate through all the vertices, checking one edge at time
-	for (int MandatoryIndex1 = 0; MandatoryIndex1 < SimplifiedVerticesCount; MandatoryIndex1++)
+	int VertA = 0;
+	while (VertA < SimplifiedVerticesCount)
 	{
-		//The mandatory indexes represent the vertex locations forming the edge to check against inside the simplified array data
-		//The raw indexes represent the vertex locations in between the edge created by the simplyfed array data
-		int MandatoryIndex2 = (MandatoryIndex1 + 1) % SimplifiedVerticesCount;
-		int RawIndex1 = VerticesSimplified[MandatoryIndex1].RawIndex;
-		int RawIndex2 = VerticesSimplified[MandatoryIndex2].RawIndex;
+		//Get the raw index of two consecutive simplified vertices
+		int VertB = (VertA + 1) % SimplifiedVerticesCount;
+		int RawIndex1 = VerticesSimplified[VertA].RawIndex;
+		int RawIndex2 = VerticesSimplified[VertB].RawIndex;
+		int VertToTest = (RawIndex1 + 1) % RawVerticesCount;
 
-		//Check to make sure the last point is correctly skipped, preventing the code to reach the while loop and possibly create an infinite loop
-		int IndexToCheck = 0;
-		if (RawIndex2 == 0)
+		float MaxDeviation = 0.f;
+		int VertexToInsert = -1;
+
+		//Iterate through all the raw vertices between the range established 
+		//Excluding the vertices bordering the null region
+		if (VerticesRaw[(VertToTest) % RawVerticesCount].ExternalRegionID == NULL_REGION)
 		{
-			IndexToCheck = RawVerticesCount - 1;
+			while (VertToTest != RawIndex2)
+			{
+				//If the deviation between the current vertex considered and the segment AB is greater than the current value set
+				float Deviation = FMath::PointDistToSegment(VerticesRaw[VertToTest].Coordinate, VerticesSimplified[VertA].Coordinate, VerticesSimplified[VertB].Coordinate);
+
+				if (Deviation > MaxDeviation)
+				{
+					//Assign the vertex as the one to insert into the contour and set the MaxDeviation value
+					//The vertex with the max deviation is the one needed
+					MaxDeviation = Deviation;
+					VertexToInsert = VertToTest;
+				}
+
+				VertToTest = (VertToTest + 1) % RawVerticesCount;
+			}
 		}
+
+		//If the deviation is greater than the EdgeMaxDeviation specified add the vertex to the array
+		if (VertexToInsert != -1 && MaxDeviation > EdgeMaxDeviation)
+		{
+			VerticesSimplified.Insert(VerticesRaw[VertexToInsert], VertA + 1);
+			SimplifiedVerticesCount++;
+		}
+		//Otherwise increase the loop index
 		else
 		{
-			IndexToCheck = RawIndex2;
+			VertA++;
 		}
-
-		//Condition to check the vertices to skip, the ones that
-		// 1 - have the same region ID of the final point of the edge considered
-		// 2- the region ID is different from the null region
-		//For vertices that represents portals between non null region, there is no calculation to apply and all the raw vertices are discarded
-		if (VerticesRaw[(RawIndex1 + 1) % RawVerticesCount].ExternalRegionID == VerticesRaw[IndexToCheck].ExternalRegionID &&
-			VerticesRaw[(RawIndex1 + 1) % RawVerticesCount].ExternalRegionID != NULL_REGION)
-		{
-			continue;
-		}
-
-		int IndexTestVertex = (RawIndex1 + 1) % RawVerticesCount;
-
-		//As long as the current test vertex index is not equal to the second raw index, continue looping
-		while (IndexTestVertex != RawIndex2)
-		{
-			//Find the distance between the edge and the vertex considered
-			/*float Deviation = FMath::PointDistToSegment(VerticesRaw[IndexTestVertex].Coordinate, VerticesSimplified[MandatoryIndex1].Coordinate, VerticesSimplified[MandatoryIndex2].Coordinate);*/
-
-			//According to the algorithm using the distance between the raw point considered and the segment should do the trick
-			//However I noticed that, in some cases this does not work (when you have a straight line of point equidistant from the raw one)
-			//If one is not valid all of them are not valid and therefore the line is removed
-			//For this reason the solution below is preferred
-			FVector EdgeMidpoint = (VerticesSimplified[MandatoryIndex1].Coordinate + VerticesSimplified[MandatoryIndex2].Coordinate) * 0.5f;
-			float Deviation = FVector::DistSquared(VerticesRaw[IndexTestVertex].Coordinate, EdgeMidpoint);
-
-			//If greater than the value established
-			if (Deviation >= (EdgeMaxDeviation * EdgeMaxDeviation))
-			{
-				//Insert the new vertex in between, making sure to update all the needed value 
-				//(the total vertices in the array, the vertices forming the edge to check against and the current index to test)
-				VerticesSimplified.Insert(VerticesRaw[IndexTestVertex], MandatoryIndex1 + 1);
-				SimplifiedVerticesCount++;
-				MandatoryIndex1++;
-				MandatoryIndex2 = (MandatoryIndex2 + 1) % SimplifiedVerticesCount;
-				IndexTestVertex = (IndexTestVertex + 1) % RawVerticesCount;
-			}
-			else
-			{
-				//Otherwise simply increase the index of the test one
-				IndexTestVertex = (IndexTestVertex + 1) % RawVerticesCount;
-			}
-		}
-
 	}
 }
 
@@ -353,40 +334,54 @@ void UContour::CheckNullRegionMaxEdge(TArray<FContourVertexData>& VerticesRaw, T
 	int RawVerticesCount = VerticesRaw.Num();
 	int SimplifiedVerticesCount = VerticesSimplified.Num();
 
-	//Similar logic to the ReinsertNullRegionVertices method, taking into consideration an edge of two consecutive vertices bordering the null region
-	for (int MandatoryVertex1 = 0; MandatoryVertex1 < SimplifiedVerticesCount; MandatoryVertex1++)
+	int VertA = 0;
+
+	//Similar logic to the one used in the ReinsertNullRegionVertices method
+	while (VertA < SimplifiedVerticesCount)
 	{
-		int MandatoryVertex2 = (MandatoryVertex1 + 1) % SimplifiedVerticesCount;
+		//Get the raw index of two consecutive simplified vertices
+		int VertB = (VertA + 1) % SimplifiedVerticesCount;
+		int RawIndex1 = VerticesSimplified[VertA].RawIndex;
+		int RawIndex2 = VerticesSimplified[VertB].RawIndex;
 
-		//Execute the logic only if the final vertices of the edge belongs to the null region
-		if (VerticesSimplified[MandatoryVertex2].ExternalRegionID == NULL_REGION)
+		int NewVert = -1;
+		int VertToTest = (RawIndex1 + 1) % SimplifiedVerticesCount;
+
+		//Check if the vertex to test belongs to the null region
+		if (VerticesRaw[(VertToTest) % RawVerticesCount].ExternalRegionID == NULL_REGION)
 		{
-			float DistanceSqr = FVector::DistSquared(VerticesSimplified[MandatoryVertex1].Coordinate, VerticesSimplified[MandatoryVertex2].Coordinate);
+			//Check if the distance between the limit vertices considered is greater than the the value set
+			float DistX = VerticesRaw[RawIndex2].Coordinate.X - VerticesRaw[RawIndex1].Coordinate.X;
+			float DistY = VerticesRaw[RawIndex2].Coordinate.Y - VerticesRaw[RawIndex1].Coordinate.Y;
 
-			//Check the length of the edge and, if it's greater than the value established, insert a vertex at its middle point
-			while (DistanceSqr > MaxEdgeLenght * MaxEdgeLenght)
+			//If it is set the NewVert value equal to the vertex that is halfway between the 2 considered
+			if (DistX * DistX + DistY * DistY > MaxEdgeLenght * MaxEdgeLenght)
 			{
-				FVector Point1 = VerticesSimplified[MandatoryVertex1].Coordinate;
-				FVector Point2 = VerticesSimplified[MandatoryVertex2].Coordinate;
+				int IndexDistance;
 
-				FVector MiddlePoint = (Point2 - Point1) / 2 + Point1;
+				if (RawIndex2 < RawIndex1)
+				{
+					IndexDistance = RawIndex2 + (RawVerticesCount - RawIndex1);
+				}
+				else
+				{
+					IndexDistance = RawIndex2 - RawIndex1;
+				}
 
-				//The new vertex inserted is initialized with the data of the initial vewrtex of the edge
-				FContourVertexData NewPoint;
-				NewPoint.Coordinate = MiddlePoint;
-				NewPoint.ExternalRegionID = VerticesSimplified[MandatoryVertex1].ExternalRegionID;
-				NewPoint.InternalRegionID = VerticesSimplified[MandatoryVertex1].InternalRegionID;
-
-				VerticesSimplified.Insert(NewPoint, MandatoryVertex1 + 1);
-
-				//After the insertion, the total number of vertices is updated (needed for the loop) as well as the final vertex of the edge
-				SimplifiedVerticesCount++;
-				MandatoryVertex2 = (MandatoryVertex1 + 1) % SimplifiedVerticesCount;
-
-				//The loop continues because the new edge created could still be longer than the value used as conditions
-				//So the distance is ricalculated before repeating the loop
-				DistanceSqr = FVector::DistSquared(VerticesSimplified[MandatoryVertex1].Coordinate, VerticesSimplified[MandatoryVertex2].Coordinate);
+				NewVert = (RawIndex1 + IndexDistance / 2) % RawVerticesCount;
 			}
+		}
+
+		//If the NewVert value is valid, add the vertex to the VerticesSimplified container
+		if (NewVert != -1)
+		{
+			VerticesSimplified.Insert(VerticesRaw[NewVert], VertA + 1);
+			SimplifiedVerticesCount++;
+		}
+		//Otherwise increase the loop
+		else
+		{
+			VertA++;
 		}
 	}
 }
@@ -462,19 +457,21 @@ void UContour::DrawRegionContour()
 			}
 		}
 
-		//for (int Index = 0; Index < TempContainer.Num(); Index++)
-		//{
-		//	/*FActorSpawnParameters SpawnInfo;
-		//	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		for (int Index = 0; Index < TempContainer.Num(); Index++)
+		{
+			/*FActorSpawnParameters SpawnInfo;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-		//	ATextRenderActor* Text = CurrentWorld->SpawnActor<ATextRenderActor>(TempContainer[Index], FRotator(0.f, 180.f, 0.f), SpawnInfo);
-		//	Text->GetTextRender()->SetText(FString::FromInt(Index));
-		//	Text->GetTextRender()->SetTextRenderColor(FColor::Red);*/
+			ATextRenderActor* Text = CurrentWorld->SpawnActor<ATextRenderActor>(TempContainer[Index], FRotator(0.f, 180.f, 0.f), SpawnInfo);
+			Text->GetTextRender()->SetText(FString::FromInt(Index));
+			Text->GetTextRender()->SetTextRenderColor(FColor::Red);*/
 
-		//	DrawDebugSphere(CurrentWorld, TempContainer[Index], 4.f, 2.f, FColor::Red, false, 20.f, 0.f, 2.f);
-		//}
+			/*DrawDebugSphere(CurrentWorld, TempContainer[Index], 4.f, 2.f, FColor::Red, false, 20.f, 0.f, 2.f);*/
+		}
 
-		UUtilityDebug::DrawPolygon(CurrentWorld, TempContainer, FColor::Blue, 20.0f, 2.0f);
+		FColor Color = FColor::MakeRandomColor();
+
+		UUtilityDebug::DrawPolygon(CurrentWorld, TempContainer, Color, 100.0f, 4.0f);
 		TempContainer.Empty();
 		LoopIndex++;
 	}

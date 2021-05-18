@@ -69,7 +69,7 @@ public:
 	float CellSize = 40.f;
 
 	//Height of the single cells (voxels) in which the heightfiels is subdivided
-	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|SolidHeightfield", meta = (DisplayName = "CellHeight"))
+	/*UPROPERTY(EditAnywhere, Category = "NavmeshParameters|SolidHeightfield", meta = (DisplayName = "CellHeight"))*/
 	float CellHeight = 40.f;
 
 	//Represent the maximum slope angle (in degree) that is considered traversable
@@ -128,12 +128,12 @@ public:
 
 	//The maximum distance the edge of the contour may deviate from the source geometry - less the distance, more precise and intense the calculation
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|Contour", meta = (DisplayName = "EdgeMaxDeviation"))
-	float EdgeMaxDeviation = 60.f;
+	float EdgeMaxDeviation = 80.f;
 
 	//The maximum length of polygon edges that represent the border of meshes 
 	//More vertices will be added to border edges if this value is exceeded for a particular edge
-	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|Contour", meta = (DisplayName = "EdgeMaxDeviation"))
-	float MaxEdgeLenght = 60.f;
+	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|Contour", meta = (DisplayName = "MaxEdgeLenght"))
+	float MaxEdgeLenght = 80.f;
 
 	//Enable the debug visualization of the contours
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|Contour", meta = (DisplayName = "EnableContourDebug"))

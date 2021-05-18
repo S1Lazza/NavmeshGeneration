@@ -26,6 +26,7 @@ ANavMeshController::ANavMeshController()
 void ANavMeshController::BeginPlay()
 {
 	Super::BeginPlay();
+	/*DisplayDebugElements();*/
 }
 
 // Called every frame
@@ -38,6 +39,8 @@ void ANavMeshController::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 	
+	CellHeight = CellSize;
+
 	//TODO: Find a way to avoid rebuilding the navmesh every single time a debug option is checked/unchkeched
 	NavMeshGenerator.Get()->RebuildAll();
 }

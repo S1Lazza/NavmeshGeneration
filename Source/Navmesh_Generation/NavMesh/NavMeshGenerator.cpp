@@ -164,9 +164,9 @@ void FNavMeshGenerator::CreateOpenHeightfield()
 		OpenHF->GenerateNeightborLinks();
 		OpenHF->GenerateDistanceField();
 		OpenHF->GenerateRegions();
-
-		//TODO: There's an infinite loop when the MinUnconnectedRegion parameter is set to 0 or 1, check why
-		/*OpenHF->HandleSmallRegions();*/
+		OpenHF->HandleSmallRegions();
+		OpenHF->ReassignBorderSpan();
+		/*OpenHF->CleanRegionBorders();*/
 	}
 }
 
@@ -179,7 +179,7 @@ void FNavMeshGenerator::CreateContour()
 void FNavMeshGenerator::CreatePolygonMesh()
 {
 	PolygonMesh->InitializeParameters(NavigationMesh->GetNavmeshController());
-	PolygonMesh->GeneratePolygonMesh(Contour, true, 1);
+	PolygonMesh->GeneratePolygonMesh(Contour, true, 0);
 }
 
 void FNavMeshGenerator::SendDataToNavmesh()

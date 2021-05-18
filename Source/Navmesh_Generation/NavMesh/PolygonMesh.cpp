@@ -154,17 +154,17 @@ void UPolygonMesh::GeneratePolygonMesh(const UContour* Contour, bool PerformRecu
 			//Execute the merging of the polygons
 			PerformPolygonMerging(TempPolysIndices, GlobalVertices, PolyCount);
 
-			//If needed an additional numbero of merging can be done to reduce the number of polygons created
+			//If needed an additional number of merging can be done to reduce the number of polygons created
 			if (PerformRecursiveMerging)
 			{
 				for (int Iteration = 0; Iteration < NumberOfRecursion; Iteration++)
 				{
-					RemoveCollinearIndices(TempPolysIndices, GlobalVertices);
+					/*RemoveCollinearIndices(TempPolysIndices, GlobalVertices);*/
 					PerformPolygonMerging(TempPolysIndices, GlobalVertices, PolyCount);
 				}
 			}
 
-			RemoveCollinearIndices(TempPolysIndices, GlobalVertices);
+			/*RemoveCollinearIndices(TempPolysIndices, GlobalVertices);*/
 		}
 
 		//Add to the GlobalPolys container the single polygon indices, split by a NULL_INDEX value
@@ -350,20 +350,22 @@ void UPolygonMesh::PerformPolygonMerging(TArray<TArray<int>>& PolysIndices, TArr
 
 		//Decrease the numbers of polygon
 		PolyTotalCount--;
+
+		RemoveCollinearIndices(PolysIndices[BestPolyA], Vertices);
 	}
 }
 
-void UPolygonMesh::RemoveCollinearIndices(TArray<TArray<int>>& PolysIndices, TArray<FVector>& Vertices)
+void UPolygonMesh::RemoveCollinearIndices(TArray<int>& PolysIndices, TArray<FVector>& Vertices)
 {
-	for (int Index = 0; Index < PolysIndices.Num(); Index++)
+	/*for (int Index = 0; Index < PolysIndices.Num(); Index++)
 	{
-		int PolygonTotalIndices = PolysIndices[Index].Num();
+		int PolygonTotalIndices = PolysIndices[Index].Num();*/
 
-		for (int VertexIndex = 0; VertexIndex < PolygonTotalIndices;)
+		for (int VertexIndex = 0; VertexIndex < PolysIndices.Num();)
 		{
-			FVector Vertex = Vertices[PolysIndices[Index][VertexIndex]];
-			FVector VertexPlusOne = Vertices[PolysIndices[Index][GetNextArrayIndex(VertexIndex, PolygonTotalIndices)]];
-			FVector VertexMinusOne = Vertices[PolysIndices[Index][GetPreviousArrayIndex(VertexIndex, PolygonTotalIndices)]];
+			FVector Vertex = Vertices[PolysIndices[VertexIndex]];
+			FVector VertexPlusOne = Vertices[PolysIndices[GetNextArrayIndex(VertexIndex, PolysIndices.Num())]];
+			FVector VertexMinusOne = Vertices[PolysIndices[GetPreviousArrayIndex(VertexIndex, PolysIndices.Num())]];
 
 			float Distance1Curr = FVector::Dist(Vertex, VertexMinusOne);
 			float Distance2Curr = FVector::Dist(Vertex, VertexPlusOne);
@@ -371,14 +373,14 @@ void UPolygonMesh::RemoveCollinearIndices(TArray<TArray<int>>& PolysIndices, TAr
 
 			if ((Distance1Curr + Distance2Curr) == Distance12)
 			{
-				PolysIndices[Index].RemoveAt(VertexIndex);
-				PolygonTotalIndices--;
+				PolysIndices.RemoveAt(VertexIndex);
+				/*PolygonTotalIndices--;*/
 				continue;
 			}
 
 			VertexIndex++;
 		}
-	}
+	/*}*/
 }
 
 void UPolygonMesh::GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& PolyIndicesB, TArray<FVector>& Vertices, FPolygonMergeData& MergingInfo)
@@ -761,7 +763,7 @@ void UPolygonMesh::DrawDebugPolyMeshPolys()
 		{
 			int VertexIndex = GlobalPolys[Index];
 
-			DrawDebugSphere(CurrentWorld, GlobalVertices[VertexIndex], 4.f, 2.f, FColor::Blue, false, 20.f, 0.f, 2.f);
+			/*DrawDebugSphere(CurrentWorld, GlobalVertices[VertexIndex], 4.f, 2.f, FColor::Blue, false, 20.f, 0.f, 2.f);*/
 			/*ATextRenderActor* Text = CurrentWorld->SpawnActor<ATextRenderActor>(Vertices[VertexIndex], FRotator(0.f, 180.f, 0.f), SpawnInfo);
 			Text->GetTextRender()->SetText(FString::FromInt(VertexIndex));
 			Text->GetTextRender()->SetTextRenderColor(FColor::Red);*/
@@ -772,7 +774,7 @@ void UPolygonMesh::DrawDebugPolyMeshPolys()
 		{
 			if (TempArray.Num() > 0)
 			{
-				UUtilityDebug::DrawPolygon(CurrentWorld, TempArray, FColor::Red, 1000.f, 1.f);
+				UUtilityDebug::DrawPolygon(CurrentWorld, TempArray, FColor::Red, 1000.f, 1.5f);
 				TempArray.Empty();
 			}
 		}

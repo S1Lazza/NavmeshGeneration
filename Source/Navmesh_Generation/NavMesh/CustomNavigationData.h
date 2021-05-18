@@ -26,7 +26,7 @@ public:
 
 	void CreateNavmeshController();
 
-	void SetResultingPoly(TArray<FPolygonData> NavPoly);
+	void SetResultingPoly(const TArray<FPolygonData> NavPoly);
 
 	ANavMeshController* GetNavmeshController() const { return NavMeshController; };
 	TArray<FPolygonData> GetResultingPoly() const { return ResultingPoly; };

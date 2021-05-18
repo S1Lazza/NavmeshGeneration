@@ -16,6 +16,7 @@ AMeshDebug::AMeshDebug()
 
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMesh"));
 	Mesh->SetupAttachment(RootComponent);
+	Mesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> FoundMesh(TEXT("/Game/Assets/Mesh/Cube"));
 

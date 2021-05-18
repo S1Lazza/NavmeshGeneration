@@ -58,14 +58,16 @@ bool URegion::PerformRegionMergingIn(URegion* TargetRegion)
 	//To rebuild the target connection start from the connection point after the one found with the current region and loop back to the one prior it 
 	for (int i = 0; i < ConnectionSize - 1; i++)
 	{
-		TargetRegion->Connections.Add(TargetConnections[(ConnectionPointOnTarget + 1 + i) % ConnectionSize]);
+		int ConnectionToAdd = TargetConnections[(ConnectionPointOnTarget + 1 + i) % ConnectionSize];
+		TargetRegion->Connections.Add(ConnectionToAdd);
 	}
 
 	//Insert current connections into target connections at their mutual connection point
 	ConnectionSize = Connections.Num();
 	for (int i = 0; i < ConnectionSize - 1; i++)
 	{
-		TargetRegion->Connections.Add(Connections[(ConnectionPointOnCurrent + 1 + i) % ConnectionSize]);
+		int ConnectionToAdd = Connections[(ConnectionPointOnCurrent + 1 + i) % ConnectionSize];
+		TargetRegion->Connections.Add(ConnectionToAdd);
 	}
 
 	//Remove duplicates

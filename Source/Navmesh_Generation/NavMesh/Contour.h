@@ -78,11 +78,11 @@ public:
 	const TArray<FContourVertexData> GetSimplifiedVertices() const { return SimplifiedVertices; };
 
 private:
+	FVector BoundMin;
+
 	float EdgeMaxDeviation;
 
 	float MaxEdgeLenght;
-
-	FVector BoundMin;
 	
 	float CellSize;
 	

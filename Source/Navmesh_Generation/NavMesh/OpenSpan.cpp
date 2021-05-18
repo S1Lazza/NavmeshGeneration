@@ -74,13 +74,267 @@ void UOpenSpan::GetNeighborRegionIDs(TArray<int>& NeighborIDs)
     }
 }
 
+int UOpenSpan::SelectedRegionID(int BorderDirection, int CornerDirection)
+{
+    TArray<int> NeighborRegionIDs;
+    GetNeighborRegionIDs(NeighborRegionIDs);
+
+    int NeighborID = NeighborRegionIDs[IncreaseNeighborDirection(BorderDirection, 2)];
+    if (NeighborID == RegionID || NeighborID == NULL_REGION)
+    {
+        return RegionID;
+    }
+
+    int PotentialRegion = NeighborID;
+    
+    NeighborID = NeighborRegionIDs[IncreaseNeighborDirection(CornerDirection, 2)];
+    if (NeighborID == RegionID || NeighborID == NULL_REGION)
+    {
+        return RegionID;
+    }
+
+    int PotentialCount = 0;
+    int CurrentCount = 0;
+
+    for (int Iter = 0; Iter < 8; Iter++)
+    {
+        if (NeighborRegionIDs[Iter] == RegionID)
+        {
+            CurrentCount++;
+        }
+        else if (NeighborRegionIDs[Iter] == PotentialRegion)
+        {
+            PotentialCount++;
+        }
+    }
+
+    if (PotentialCount < CurrentCount)
+    {
+        return RegionID;
+    }
+
+    return PotentialRegion;
+}
+
+void UOpenSpan::PartialFloodRegion(int BorderDirection, int NewRegionID)
+{
+    int AntiBorderDirection = IncreaseNeighborDirection(BorderDirection, 2);
+    int CurrRegionID = RegionID;
+
+   RegionID = NewRegionID;
+   DistanceToRegionCore = 0;
+
+    TArray<UOpenSpan*> TempOpenSpans;
+    TArray<int> TempBorderDistances;
+    TempOpenSpans.Add(this);
+    TempBorderDistances.Add(0);
+
+    while (TempOpenSpans.Num() > 0)
+    {
+        UOpenSpan* TempSpan = TempOpenSpans.Last();
+        TempOpenSpans.RemoveAt((TempOpenSpans.Num() - 1));
+
+        int TempBorderDistance = TempBorderDistances.Last();
+        TempBorderDistances.RemoveAt((TempBorderDistances.Num() - 1));
+
+        for (int Index = 0; Index < 4; Index++)
+        {
+            UOpenSpan* NeighborSpan = TempSpan->GetAxisNeighbor(Index);
+            if (!NeighborSpan || NeighborSpan->RegionID != CurrRegionID)
+            {
+                continue;
+            }
+
+            int NeighborDistance = TempBorderDistance;
+            if (Index == BorderDirection)
+            {
+                if (TempBorderDistance == 0)
+                {
+                    continue;
+                }
+
+                NeighborDistance--;
+            }
+            else if (Index == AntiBorderDirection)
+            {
+                NeighborDistance++;
+            }
+
+            NeighborSpan->RegionID = NewRegionID;
+            NeighborSpan->DistanceToRegionCore = 0;
+
+            TempOpenSpans.Add(NeighborSpan);
+            TempBorderDistances.Add(NeighborDistance);
+        }
+    }
+}
+
+bool UOpenSpan::ProcessNullRegion(int StartDirection)
+{
+    int BorderRegionID = RegionID;
+
+    UOpenSpan* Span = this;
+    UOpenSpan* NeighborSpan;
+    int Direction = StartDirection;
+
+    int LoopCount = 0;
+    int AcuteCornerCount = 0;
+    int ObtuseCornerCount = 0;
+    int StepsWithoutBorder = 0;
+    bool BorderSeenLastLoop = false;
+    bool IsBorder = true;
+
+    bool HasSingleConnection = true;
+
+    while (LoopCount < INT_MAX)
+    {
+        NeighborSpan = Span->GetAxisNeighbor(Direction);
+
+        if (!NeighborSpan)
+        {
+            IsBorder = true;
+        }
+        else
+        {
+            NeighborSpan->ProcessedForRegionFixing = true;
+            if (NeighborSpan->RegionID == NULL_REGION)
+            {
+                IsBorder = true;
+            }
+            else
+            {
+                IsBorder = false;
+                if (NeighborSpan->RegionID != BorderRegionID)
+                {
+                    HasSingleConnection = false;
+                }
+            }
+        }
+
+        if (IsBorder)
+        {
+            if (BorderSeenLastLoop)
+            {
+                AcuteCornerCount++;
+            }
+            else if (StepsWithoutBorder > 1)
+            {
+                ObtuseCornerCount++;
+                StepsWithoutBorder = 0;
+
+                if (Span->ProcessOuterCorner(Direction))
+                {
+                    HasSingleConnection = false;
+                }
+            }
+
+            Direction = IncreaseNeighborDirection(Direction, 1);
+            BorderSeenLastLoop = true;
+            StepsWithoutBorder = 0;
+        }
+        else
+        {
+            Span = NeighborSpan;
+            Direction = IncreaseNeighborDirection(Direction, 3);
+            BorderSeenLastLoop = false;
+            StepsWithoutBorder++;
+        }
+
+        if (this == Span && StartDirection == Direction)
+        {
+            return (HasSingleConnection && ObtuseCornerCount > AcuteCornerCount);
+        }
+
+        LoopCount++;
+    }
+
+    return false;
+}
+
+bool UOpenSpan::ProcessOuterCorner(int BorderDirection)
+{
+    bool HasMultiRegions = false;
+
+    UOpenSpan* BackOne = GetAxisNeighbor(IncreaseNeighborDirection(BorderDirection, 3));
+    UOpenSpan* BackTwo = BackOne->GetAxisNeighbor(BorderDirection);
+
+    UOpenSpan* TestSpan;
+
+    if (BackOne->RegionID != RegionID && BackTwo->RegionID == RegionID)
+    {
+        HasMultiRegions = true;
+
+        TestSpan = BackOne->GetAxisNeighbor(IncreaseNeighborDirection(BorderDirection, 3));
+        int BackTwoConnections = 0;
+
+        if (TestSpan && TestSpan->RegionID == BackOne->RegionID)
+        {
+            BackTwoConnections++;
+            TestSpan = TestSpan->GetAxisNeighbor(BorderDirection);
+
+            if (TestSpan && TestSpan->RegionID == BackOne->RegionID)
+            {
+                BackTwoConnections++;
+            }
+        }
+
+        int ReferenceConnections = 0;
+        TestSpan = BackOne->GetAxisNeighbor(IncreaseNeighborDirection(BorderDirection, 2));
+
+        if (TestSpan && TestSpan->RegionID == BackOne->RegionID)
+        {
+            ReferenceConnections++;
+            TestSpan = TestSpan->GetAxisNeighbor(IncreaseNeighborDirection(BorderDirection, 2));
+
+            if (TestSpan && TestSpan->RegionID == BackOne->RegionID)
+            {
+                BackTwoConnections++;
+            }
+        }
+
+        if (ReferenceConnections > BackTwoConnections)
+        {
+            RegionID = BackOne->RegionID;
+        }
+        else
+        {
+            BackTwo->RegionID = BackOne->RegionID;
+        }
+    }
+    else if (BackOne->RegionID == RegionID && BackTwo->RegionID == RegionID)
+    {
+        int SelectedRegion = BackTwo->SelectedRegionID(IncreaseNeighborDirection(BorderDirection, 1), IncreaseNeighborDirection(BorderDirection, 2));
+        if (SelectedRegion == BackTwo->RegionID)
+        {
+            SelectedRegion = SelectedRegionID(BorderDirection, IncreaseNeighborDirection(BorderDirection, 3));
+
+            if (SelectedRegion != RegionID)
+            {
+                RegionID = SelectedRegion;
+                HasMultiRegions = true;
+            }
+        }
+        else
+        {
+            BackTwo->RegionID = SelectedRegion;
+            HasMultiRegions = true;
+        }
+    }
+    else
+    {
+        HasMultiRegions = true;
+    }
+
+    return HasMultiRegions;
+}
+
 int UOpenSpan::GetRegionEdgeDirection()
 {
     for (int NeighborDir = 0; NeighborDir < 4; NeighborDir++)
     {
         UOpenSpan* NeighborSpan = GetAxisNeighbor(NeighborDir);
 
-        if (NeighborSpan || NeighborSpan->RegionID != RegionID)
+        if (!NeighborSpan || NeighborSpan->RegionID != RegionID)
         {
             return NeighborDir;
         }

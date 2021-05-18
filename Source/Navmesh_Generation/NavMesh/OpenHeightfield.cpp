@@ -393,6 +393,33 @@ void UOpenHeightfield::GenerateRegions()
 		CurrentDist = FMath::Max(CurrentDist - 2, MinBorderDistance);
 	}
 
+
+	FloodedSpans.Empty();
+	for (auto& Span : Spans)
+	{
+		UOpenSpan* CurrentSpan = Span.Value;
+
+		do
+		{
+			if (CurrentSpan->DistanceToBorder >= MinDist && CurrentSpan->RegionID == NULL_REGION)
+			{
+				FloodedSpans.Add(CurrentSpan);
+			}
+
+			CurrentSpan = CurrentSpan->nextSpan;
+		} 
+		while (CurrentSpan);
+	}
+
+	if (MinDist > 0)
+	{
+		ExpandRegions(FloodedSpans, ExpandIterations * 8);
+	}
+	else
+	{
+		ExpandRegions(FloodedSpans, -1);
+	}
+
 	RegionCount = NextRegionID;
 }
 
@@ -613,51 +640,58 @@ void UOpenHeightfield::GatherRegionsData(TArray<URegion*>& Regions)
 	{
 		UOpenSpan* CurrentSpan = Span.Value;
 
-		//If a spans belongs to the null region, skip it
-		if (CurrentSpan->RegionID == NULL_REGION)
-		{
-			continue;
-		}
-
-		//Increase the current span count of the region the span belongs to
-		URegion* Region = Regions[CurrentSpan->RegionID];
-		Region->SpanCount++;
-
-		UOpenSpan* NextSpan = CurrentSpan->nextSpan;
-
-		//Traverse the span column
-		while (NextSpan)
+		do
 		{
 			//If a spans belongs to the null region, skip it
-			if (NextSpan->RegionID == NULL_REGION)
+			if (CurrentSpan->RegionID == NULL_REGION)
 			{
-				NextSpan = NextSpan->nextSpan;
+				CurrentSpan = CurrentSpan->nextSpan;
 				continue;
 			}
 
-			//If a undetected region is found above the current one, add it to the overlapping array
-			if (!Region->OverlappingRegions.Contains(NextSpan->RegionID))
+			//Increase the current span count of the region the span belongs to
+			URegion* Region = Regions[CurrentSpan->RegionID];
+			Region->SpanCount++;
+
+			UOpenSpan* NextSpan = CurrentSpan->nextSpan;
+
+			while (NextSpan)
 			{
-				Region->OverlappingRegions.Add(NextSpan->RegionID);
+				//If a spans belongs to the null region, skip it
+				if (NextSpan->RegionID == NULL_REGION)
+				{
+					NextSpan = NextSpan->nextSpan;
+					continue;
+				}
+
+				//If a undetected region is found above the current one, add it to the overlapping array
+				if (!Region->OverlappingRegions.Contains(NextSpan->RegionID))
+				{
+					Region->OverlappingRegions.Add(NextSpan->RegionID);
+				}
+
+				NextSpan = NextSpan->nextSpan;
 			}
 
-			NextSpan = NextSpan->nextSpan;
-		}
+			//The connection for this region has been already found, skip the rest of the code
+			//To understand why this condirtion is applied, check the method below FindRegionConnections
+			if (Region->Connections.Num() > 0)
+			{
+				CurrentSpan = CurrentSpan->nextSpan;
+				continue;
+			}
 
-		//The connection for this region has been already found, skip the rest of the code
-		//To understand why this condirtion is applied, check the method below FindRegionConnections
-		if (Region->Connections.Num() > 0)
-		{
-			continue;
-		}
+			//If the span is on the region edge
+			//Get the direction of the edge and proceeed to find all the region connections
+			int EdgeDirection = CurrentSpan->GetRegionEdgeDirection();
+			if (EdgeDirection != -1)
+			{
+				FindRegionConnections(CurrentSpan, EdgeDirection, Region->Connections);
+			}
 
-		//If the span is on the region edge
-		//Get the direction of the edge and proceeed to find all the region connections
-		int EdgeDirection = CurrentSpan->GetRegionEdgeDirection();
-		if (EdgeDirection != -1)
-		{
-			FindRegionConnections(CurrentSpan, EdgeDirection, Region->Connections);
-		}
+			CurrentSpan = CurrentSpan->nextSpan;
+		} 
+		while (CurrentSpan);
 	}
 }
 
@@ -708,7 +742,7 @@ void UOpenHeightfield::MergeRegions(TArray<URegion*>& Regions)
 			for (int RegionID : Region->Connections)
 			{
 				//Skip null regions
-				if (RegionID == NULL_REGION)
+				if (RegionID == NULL_REGION || RegionID == Region->ID)
 				{
 					continue;
 				}
@@ -749,9 +783,8 @@ void UOpenHeightfield::MergeRegions(TArray<URegion*>& Regions)
 						R->ReplaceNeighborRegionID(OldRegionID, TargetMergeRegion->ID);
 					}
 				}
+				MergeCount++;
 			}
-
-			MergeCount++;
 		}
 	} while (MergeCount > 0);
 }
@@ -849,7 +882,7 @@ void UOpenHeightfield::FindRegionConnections(UOpenSpan* Span, int NeighborDirect
 		NeighborSpan = CurrentSpan->GetAxisNeighbor(Direction);
 		int CurrentEdgeRegion = NULL_REGION;
 
-		//The neighbor span considered is at th region edge
+		//The neighbor span considered is at the region edge
 		if (!NeighborSpan || NeighborSpan->RegionID != CurrentSpan->RegionID)
 		{
 			//If valid replace the current edge value with the one of the neighbor
@@ -894,6 +927,133 @@ void UOpenHeightfield::FindRegionConnections(UOpenSpan* Span, int NeighborDirect
 	}
 }
 
+void UOpenHeightfield::CleanRegionBorders()
+{
+	int NextRegionID = RegionCount;
+
+	for (auto& Span : Spans)
+	{
+		UOpenSpan* CurrentSpan = Span.Value;
+
+		do
+		{
+			if (CurrentSpan->ProcessedForRegionFixing)
+			{
+				CurrentSpan = CurrentSpan->nextSpan;
+				continue;
+			}
+
+			CurrentSpan->ProcessedForRegionFixing = true;
+
+			UOpenSpan* WorkingSpan;
+			int EdgeDirection = -1;
+
+			if (CurrentSpan->RegionID == NULL_REGION)
+			{
+				EdgeDirection = CurrentSpan->GetNonNullEdgeDirection();
+				if (EdgeDirection == -1)
+				{
+					CurrentSpan = CurrentSpan->nextSpan;
+					continue;
+				}
+
+				WorkingSpan = CurrentSpan->GetAxisNeighbor(EdgeDirection);
+				EdgeDirection = CurrentSpan->IncreaseNeighborDirection(EdgeDirection, 2);
+			}
+			else if(!UseOnlyNullRegionSpans)
+			{
+				EdgeDirection = CurrentSpan->GetNullEdgeDirection();
+				if (EdgeDirection == -1)
+				{
+					CurrentSpan = CurrentSpan->nextSpan;
+					continue;
+				}
+				WorkingSpan = CurrentSpan;
+			}
+			else
+			{
+				CurrentSpan = CurrentSpan->nextSpan;
+				continue;
+			}
+
+			bool IsEncompassNullRegion = WorkingSpan->ProcessNullRegion(EdgeDirection);
+
+			if (IsEncompassNullRegion)
+			{
+				WorkingSpan->PartialFloodRegion(EdgeDirection, NextRegionID);
+				NextRegionID++;
+			}
+
+			CurrentSpan = CurrentSpan->nextSpan;
+		} 
+		while (CurrentSpan);
+	}
+
+	RegionCount = NextRegionID;
+
+	for (auto& Span : Spans)
+	{
+		UOpenSpan* CurrentSpan = Span.Value;
+
+		do 
+		{
+			CurrentSpan->ProcessedForRegionFixing = false;
+			CurrentSpan = CurrentSpan->nextSpan;
+		} 
+		while (CurrentSpan);
+	}
+
+	ReassignBorderSpan();
+}
+
+void UOpenHeightfield::ReassignBorderSpan()
+{
+	bool SpanChanged = true;
+
+	while(SpanChanged) 
+	{
+		SpanChanged = false;
+
+		//Iterate through all the spans
+		for (auto& Span : Spans)
+		{
+			UOpenSpan* CurrentSpan = Span.Value;
+
+			do
+			{
+				//Skip the spans in the null region
+				if (CurrentSpan->RegionID == NULL_REGION)
+				{
+					CurrentSpan = CurrentSpan->nextSpan;
+					continue;
+				}
+
+				//Iterate through the axis spans to the one considered
+				for (int Index = 0; Index < 4; Index++)
+				{
+					UOpenSpan* AdjacentSpan = CurrentSpan->GetAxisNeighbor(Index);
+					int PlusOne = CurrentSpan->IncreaseNeighborDirection(Index, 1);
+					int MinusOne = CurrentSpan->DecreaseNeighborDirection(Index, 1);
+
+					//Reassign the spans that comply to the following conditions
+					//Have more than one adjacent axis span that has a different region ID (different from 0) from the one considered
+					//And they have the same region ID
+					if (CurrentSpan->RegionID != AdjacentSpan->RegionID && AdjacentSpan->RegionID != NULL &&
+					   (AdjacentSpan->RegionID == CurrentSpan->GetAxisNeighbor(PlusOne)->RegionID || AdjacentSpan->RegionID == CurrentSpan->GetAxisNeighbor(MinusOne)->RegionID))
+					{
+						//Reassign the span id and set the condition to repeat the loop
+						CurrentSpan->RegionID = CurrentSpan->GetAxisNeighbor(Index)->RegionID;
+						SpanChanged = true;
+						break;
+					}
+				}
+
+				CurrentSpan = CurrentSpan->nextSpan;
+			} while (CurrentSpan);
+		}
+	}
+}
+
 void UOpenHeightfield::DrawDebugSpanData()
 {
 	for (auto& Span : Spans)
@@ -907,7 +1067,7 @@ void UOpenHeightfield::DrawDebugSpanData()
 			FVector SpanMinCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width + Offset, BoundMin.Y + CellSize * CurrentSpan->Depth + Offset, BoundMin.Z + CellSize * CurrentSpan->Min);
 			FVector SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellSize * (CurrentSpan->Min));
 
-			UUtilityDebug::DrawMinMaxBox(CurrentWorld, SpanMinCoord, SpanMaxCoord, FColor::Blue, 60.0f, 0.5f);
+			UUtilityDebug::DrawMinMaxBox(CurrentWorld, SpanMinCoord, SpanMaxCoord, FColor::Blue, 60.0f, 1.5f);
 
 			CurrentSpan = CurrentSpan->nextSpan;
 		} while (CurrentSpan);

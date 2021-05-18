@@ -71,6 +71,11 @@ public:
 	//Traverse the edge of a region and add all the neighbor connection found to the region connection array
 	void FindRegionConnections(UOpenSpan* Span, int NeighborDirection, TArray<int>& RegionConnection);
 
+	void CleanRegionBorders();
+
+	//Fix issue with the spans wrapping around an adjacent region by reassign them to that region
+	void ReassignBorderSpan();
+
 	//Draw the open span data
 	void DrawDebugSpanData();
 
@@ -100,6 +105,8 @@ private:
 
 	//Total number of regions
 	int RegionCount = 0;
+
+	bool UseOnlyNullRegionSpans = false;
 
 	int MinUnconnectedRegionSize;
 

@@ -105,7 +105,7 @@ public:
 	//This indices can be safely removed and an additional merging can be done afterwards to additionally reduce the number of polygons
 	//The enabling of this option and the number of times to perform the operation is controlled by the PerformRecursiveMerging and NumberOfRecursion variables
 	//Inside the GeneratePolygonMesh method
-	void RemoveCollinearIndices(TArray<TArray<int>>& PolysIndices, TArray<FVector>& Vertices);
+	void RemoveCollinearIndices(TArray<int>& PolysIndices, TArray<FVector>& Vertices);
 
 	//Store the informtation relative to the polygon that can be merged and their shared edge
 	void GetPolyMergeInfo(TArray<int>& PolyIndicesA, TArray<int>& PolyIndicesB, TArray<FVector>& Vertices, FPolygonMergeData& MergingInfo);
@@ -169,7 +169,7 @@ public:
 	//Draw the centroid of the polygons froming the navmesh
 	void DrawPolygonCentroid();
 
-	TArray<FPolygonData> GetResultingPoly() const { return ResultingPoly; };
+	const TArray<FPolygonData> GetResultingPoly() const { return ResultingPoly; };
 
 private:
 	int MaxVertexPerPoly;

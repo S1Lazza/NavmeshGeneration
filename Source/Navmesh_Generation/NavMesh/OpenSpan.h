@@ -28,6 +28,14 @@ public:
 	UOpenSpan* GetDiagonalNeighbor(const int Direction);
 
 	void GetNeighborRegionIDs(TArray<int>& NeighborIDs);
+	
+	int SelectedRegionID(int BorderDirection, int CornerDirection);
+
+	void PartialFloodRegion(int BorderDirection, int NewRegionID);
+
+	bool ProcessNullRegion(int StartDirection);
+
+	bool ProcessOuterCorner(int BorderDirection);
 
 	//Return the direction of the first neighbor that is contained in a different region
 	int GetRegionEdgeDirection();
