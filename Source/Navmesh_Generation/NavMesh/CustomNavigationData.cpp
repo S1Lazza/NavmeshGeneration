@@ -1,8 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+#include "CustomNavigationData.h"
 #include "NavMeshGenerator.h"
 #include "NavmeshController.h"
-#include "CustomNavigationData.h"
 
 FPathFindingResult ACustomNavigationData::FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)
 {
