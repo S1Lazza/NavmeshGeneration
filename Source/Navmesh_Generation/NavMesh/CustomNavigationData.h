@@ -16,7 +16,9 @@ class NAVMESH_GENERATION_API ACustomNavigationData : public ANavigationData
 	GENERATED_BODY()
 
 public:
-	ACustomNavigationData() {};
+	ACustomNavigationData(const FObjectInitializer& ObjectInitializer);
+
+	virtual void BeginPlay() override;
 
 	static FPathFindingResult FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query);
 

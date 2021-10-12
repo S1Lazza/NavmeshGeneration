@@ -4,9 +4,60 @@
 #include "NavMeshGenerator.h"
 #include "NavmeshController.h"
 
+ACustomNavigationData::ACustomNavigationData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		FindPathImplementation = FindPath;
+		FindHierarchicalPathImplementation = FindPath;
+	}
+}
+
+void ACustomNavigationData::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
 FPathFindingResult ACustomNavigationData::FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)
 {
     /*GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("Path requested"));*/
+
+	const ANavigationData* Self = Query.NavData.Get();
+	const ACustomNavigationData* CustomNavmesh = (const ACustomNavigationData*)Self;
+	check(CustomNavmesh != nullptr);
+
+	if (CustomNavmesh == nullptr)
+	{
+		return ENavigationQueryResult::Error;
+	}
+
+	FPathFindingResult Result(ENavigationQueryResult::Error);
+	Result.Path = Query.PathInstanceToFill.IsValid() ? Query.PathInstanceToFill : Self->CreatePathInstance<FNavigationPath>(Query);
+
+	FNavigationPath* NavPath = Result.Path.Get();
+
+	if (NavPath != nullptr)
+	{
+		if ((Query.StartLocation - Query.EndLocation).IsNearlyZero())
+		{
+			Result.Path->GetPathPoints().Reset();
+			Result.Path->GetPathPoints().Add(FNavPathPoint(Query.EndLocation));
+			Result.Result = ENavigationQueryResult::Success;
+		}
+		else if (Query.QueryFilter.IsValid())
+		{
+			for (auto& Point : CustomNavmesh->GetResultingPoly())
+			{
+				NavPath->GetPathPoints().Add(FNavPathPoint(Point.Centroid));
+			}
+
+			NavPath->MarkReady();
+			Result.Result = ENavigationQueryResult::Success;
+		}
+		return Result;
+	}
+
     return FPathFindingResult();
 }
 
