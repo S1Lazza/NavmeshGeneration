@@ -13,7 +13,7 @@ class UContour;
 class UPolygonMesh;
 class FNavMeshGenerator;
 
-UCLASS()
+UCLASS(config = Engine, defaultconfig, hidecategories = (Input, Rendering, Collision, Physics, Tags, "Utilities|Transformation", Actor, Layers, Replication), notplaceable)
 class NAVMESH_GENERATION_API ANavMeshController : public AActor
 {
 	GENERATED_BODY()
@@ -66,11 +66,11 @@ public:
 
 	//Size of the single cells (voxels) in which the heightfiels is subdivided, the cells are squared
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|SolidHeightfield", meta = (DisplayName = "CellSize"))
-	float CellSize = 40.f;
+	float CellSize = 30.f;
 
 	//Height of the single cells (voxels) in which the heightfiels is subdivided
 	/*UPROPERTY(EditAnywhere, Category = "NavmeshParameters|SolidHeightfield", meta = (DisplayName = "CellHeight"))*/
-	float CellHeight = 40.f;
+	float CellHeight = 30.f;
 
 	//Represent the maximum slope angle (in degree) that is considered traversable
 	//Cells that pass the value specified are flagged as UNWALKABLE
@@ -115,7 +115,7 @@ public:
 	bool UseConservativeExpansion = true;
 
 	//Enable the debug visualization of the openspan
-	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|OpenHeightfield", meta = (DisplayName = "EnableOpenSpanData"))
+	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|OpenHeightfield", meta = (DisplayName = "EnableOpenSpanDebug"))
 	bool EnableOpenSpanDebug = false;
 
 	//Enable the debug visualization of the distance field
@@ -128,12 +128,12 @@ public:
 
 	//The maximum distance the edge of the contour may deviate from the source geometry - less the distance, more precise and intense the calculation
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|Contour", meta = (DisplayName = "EdgeMaxDeviation"))
-	float EdgeMaxDeviation = 80.f;
+	float EdgeMaxDeviation = 50.f;
 
 	//The maximum length of polygon edges that represent the border of meshes 
 	//More vertices will be added to border edges if this value is exceeded for a particular edge
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|Contour", meta = (DisplayName = "MaxEdgeLenght"))
-	float MaxEdgeLenght = 80.f;
+	float MaxEdgeLenght = 50.f;
 
 	//Enable the debug visualization of the contours
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|Contour", meta = (DisplayName = "EnableContourDebug"))

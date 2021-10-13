@@ -22,6 +22,9 @@ void ACustomNavigationData::BeginPlay()
 
 FPathFindingResult ACustomNavigationData::FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)
 {
+	//TO DO: Fix issue with pathfinding
+	return FPathFindingResult();
+
 	const ANavigationData* Self = Query.NavData.Get();
 	const ACustomNavigationData* CustomNavmesh = (const ACustomNavigationData*)Self;
 	check(CustomNavmesh != nullptr);

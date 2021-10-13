@@ -39,7 +39,9 @@ void ANavMeshController::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 	
+	//Temporary solution to prevent a couple of bugs to happen
 	CellHeight = CellSize;
+	MaxEdgeLenght = FMath::Clamp(MaxEdgeLenght, CellSize, float(INT_MAX));
 
 	//TODO: Find a way to avoid rebuilding the navmesh every single time a debug option is checked/unchkeched
 	NavMeshGenerator.Get()->RebuildAll();
