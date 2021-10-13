@@ -3,6 +3,7 @@
 #include "CustomNavigationData.h"
 #include "NavMeshGenerator.h"
 #include "NavmeshController.h"
+#include "../Pathfinding/Pathfinding.h"
 
 ACustomNavigationData::ACustomNavigationData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -21,8 +22,6 @@ void ACustomNavigationData::BeginPlay()
 
 FPathFindingResult ACustomNavigationData::FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)
 {
-    /*GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("Path requested"));*/
-
 	const ANavigationData* Self = Query.NavData.Get();
 	const ACustomNavigationData* CustomNavmesh = (const ACustomNavigationData*)Self;
 	check(CustomNavmesh != nullptr);
@@ -47,18 +46,20 @@ FPathFindingResult ACustomNavigationData::FindPath(const FNavAgentProperties& Ag
 		}
 		else if (Query.QueryFilter.IsValid())
 		{
-			for (auto& Point : CustomNavmesh->GetResultingPoly())
+			TArray<FVector> PathPoints;
+			PathPoints = UPathfinding::BuildPath(Query.StartLocation, Query.EndLocation, CustomNavmesh);
+
+			for (auto& Point : PathPoints)
 			{
-				NavPath->GetPathPoints().Add(FNavPathPoint(Point.Centroid));
+				NavPath->GetPathPoints().Add(FNavPathPoint(Point));
 			}
 
 			NavPath->MarkReady();
 			Result.Result = ENavigationQueryResult::Success;
 		}
-		return Result;
 	}
 
-    return FPathFindingResult();
+	return Result;
 }
 
 void ACustomNavigationData::ConditionalConstructGenerator()
@@ -70,10 +71,11 @@ void ACustomNavigationData::ConditionalConstructGenerator()
         NewGen.Get()->SetNavmesh(this);
         NewGen.Get()->SetNavBounds();
 
-        //Initialize the controller
-        CreateNavmeshController();
-        NavMeshController->SetNavGenerator(NewGen);
-        NavMeshController->UpdateEditorPosition();
+		//Initialize the controller
+		CreateNavmeshController();
+		NavMeshController->SetNavGenerator(NewGen);
+		NavMeshController->UpdateEditorPosition();
+	
 
         //Construct the navmesh
         NewGen.Get()->GatherValidOverlappingGeometries();
@@ -85,7 +87,7 @@ void ACustomNavigationData::ConditionalConstructGenerator()
 
 UPrimitiveComponent* ACustomNavigationData::ConstructRenderingComponent()
 {
-    return nullptr;
+	return nullptr;
 }
 
 void ACustomNavigationData::CreateNavmeshController()
@@ -95,9 +97,7 @@ void ACustomNavigationData::CreateNavmeshController()
     {
         FActorSpawnParameters SpawnInfo;
         SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-        FVector SpawnLocation = GetNavigableBounds()[0].GetCenter();
-
-        NavMeshController = GetWorld()->SpawnActor<ANavMeshController>(SpawnLocation, FRotator(0.f, 0.f, 0.f), SpawnInfo);
+        NavMeshController = GetWorld()->SpawnActor<ANavMeshController>(FVector(0.f, 0.f, 0.f), FRotator(0.f, 0.f, 0.f), SpawnInfo);
     }
 }
 

@@ -7,7 +7,7 @@
 #include "Pathfinding.generated.h"
 
 UCLASS()
-class NAVMESH_GENERATION_API UPathfinding : public UBlueprintFunctionLibrary
+class NAVMESH_GENERATION_API UPathfinding : public UObject
 {
 	GENERATED_BODY()
 
@@ -17,7 +17,7 @@ public:
 	* This data are required by the stupid funnel algoritm to determine the shortest path
 	* //TODO: Add condition to check if the path can be actually created (both target and requester are on the navmesh)
 	*/
-		static TArray<FPolygonData*> AStar(const FVector StartPosition, const FVector EndPosition, ACustomNavigationData* Navmesh)
+		static TArray<FPolygonData*> AStar(const FVector StartPosition, const FVector EndPosition, const ACustomNavigationData* Navmesh)
 	{
 		TArray<bool>ClosedList;
 		TArray<FPolygonData*>OpenList;
@@ -26,7 +26,7 @@ public:
 		FPolygonData* EndPoly = FindClosestPolygon(EndPosition, Navmesh);
 
 		//Return an empty polygon list if the target to reach is no the same polygon as the requester
-		if (DestinationReached(StartPoly->Centroid, EndPoly->Centroid))
+		if (StartPoly->Centroid.Equals(EndPoly->Centroid, 10.f))
 		{
 			return OpenList;
 		}
@@ -44,7 +44,7 @@ public:
 			FPolygonData* CurrentNode = OpenList.Last();
 
 			//Same condition as above, exit the loop when the path is completed
-			if (DestinationReached(CurrentNode->Centroid, StartPoly->Centroid))
+			if (CurrentNode->Centroid.Equals(StartPoly->Centroid, 10.f))
 			{
 				break;
 			}
@@ -87,7 +87,7 @@ public:
 	* Retrieve the path locations from the polygon data 
 	*/
 	UFUNCTION(BlueprintCallable, Category = Pathfinding, meta = (ToolTip = "Return the path locations from starting to ending point"))
-		static TArray<FVector> BuildPath(const FVector StartPosition, const FVector EndPosition, ACustomNavigationData* Navmesh)
+		static TArray<FVector> BuildPath(const FVector StartPosition, const FVector EndPosition, const ACustomNavigationData* Navmesh)
 	{
 		TArray<FVector> PathPoints;
 		TArray<FPolygonData*> PolygonsVisited = AStar(StartPosition, EndPosition, Navmesh);
@@ -107,22 +107,11 @@ public:
 		return PathPoints;
 	}
 
-	UFUNCTION(BlueprintCallable, Category = Pathfinding, meta = (ToolTip = "Return true if the starting location is equal to the target location"))
-	static bool DestinationReached(const FVector CurrentPos, const FVector Destination)
-	{
-		if (CurrentPos == Destination)
-		{
-			return true;
-		}
-
-		return false;
-	}
-
 	/*
 	* Find the closest polygon to the location passed in
 	* //TODO: Return nullptr if the location passed in is not on the navmesh
 	*/
-	static FPolygonData* FindClosestPolygon(const FVector Position, ACustomNavigationData* Navmesh)
+	static FPolygonData* FindClosestPolygon(const FVector Position, const ACustomNavigationData* Navmesh)
 	{
 		int PolyIndex = 0;
 		float MaxDistance = INT_MAX;
