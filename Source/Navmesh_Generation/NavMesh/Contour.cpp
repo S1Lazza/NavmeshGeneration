@@ -357,17 +357,7 @@ void UContour::CheckNullRegionMaxEdge(TArray<FContourVertexData>& VerticesRaw, T
 			//If it is set the NewVert value equal to the vertex that is halfway between the 2 considered
 			if (DistX * DistX + DistY * DistY > MaxEdgeLenght * MaxEdgeLenght)
 			{
-				int IndexDistance;
-
-				if (RawIndex2 < RawIndex1)
-				{
-					IndexDistance = RawIndex2 + (RawVerticesCount - RawIndex1);
-				}
-				else
-				{
-					IndexDistance = RawIndex2 - RawIndex1;
-				}
-
+				int IndexDistance = (RawIndex2 < RawIndex1) ? RawIndex2 + (RawVerticesCount - RawIndex1) : RawIndex2 - RawIndex1;
 				NewVert = (RawIndex1 + IndexDistance / 2) % RawVerticesCount;
 			}
 		}

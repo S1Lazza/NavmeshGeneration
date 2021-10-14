@@ -7,6 +7,7 @@
 #include "OpenHeightfield.h"
 #include "Contour.h"
 #include "PolygonMesh.h"
+#include "DetailedMesh.h"
 #include "NavMeshGenerator.h"
 #include "../Utility/MeshDebug.h"
 
@@ -26,7 +27,6 @@ ANavMeshController::ANavMeshController()
 void ANavMeshController::BeginPlay()
 {
 	Super::BeginPlay();
-	/*DisplayDebugElements();*/
 }
 
 // Called every frame

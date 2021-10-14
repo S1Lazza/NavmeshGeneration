@@ -127,6 +127,7 @@ public:
 	bool EnableRegionsDebug = false;
 
 	//The maximum distance the edge of the contour may deviate from the source geometry - less the distance, more precise and intense the calculation
+	//Highly dependent from the cellsize, keep the value close to it
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|Contour", meta = (DisplayName = "EdgeMaxDeviation"))
 	float EdgeMaxDeviation = 50.f;
 

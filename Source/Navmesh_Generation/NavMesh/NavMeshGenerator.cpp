@@ -8,6 +8,7 @@
 #include "OpenHeightfield.h"
 #include "Contour.h"
 #include "PolygonMesh.h"
+#include "DetailedMesh.h"
 #include "NavMeshController.h"
 #include "CustomNavigationData.h"
 #include "../Utility/UtilityGeneral.h"
@@ -118,15 +119,15 @@ void FNavMeshGenerator::GenerateNavmesh()
 	SendDataToNavmesh();
 }
 
+//TODO: Need to clean them before creating the new ones
 void FNavMeshGenerator::InitializeNavmeshObjects()
 {
 	//The objects are reinitialized every single time the navmesh is updated in editor for an easier cleanup of the intermediate data
 	SolidHF = NewObject<USolidHeightfield>(USolidHeightfield::StaticClass());
-
 	OpenHF = NewObject<UOpenHeightfield>(UOpenHeightfield::StaticClass());
-
 	Contour = NewObject<UContour>(UContour::StaticClass());
 	PolygonMesh = NewObject<UPolygonMesh>(UPolygonMesh::StaticClass());
+	DetailedMesh = NewObject<UDetailedMesh>(UDetailedMesh::StaticClass());
 }
 
 void FNavMeshGenerator::CreateSolidHeightfield(const UStaticMeshComponent* Mesh)
@@ -178,6 +179,10 @@ void FNavMeshGenerator::CreatePolygonMesh()
 {
 	PolygonMesh->InitializeParameters(NavigationMesh->GetNavmeshController());
 	PolygonMesh->GeneratePolygonMesh(Contour, true, 0);
+}
+
+void FNavMeshGenerator::CreateDetailedMesh()
+{
 }
 
 void FNavMeshGenerator::SendDataToNavmesh()

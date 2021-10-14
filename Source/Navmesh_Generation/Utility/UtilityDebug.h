@@ -77,7 +77,7 @@ public:
 
 		for (FVector FirstPoint : InputData)
 		{
-			DrawDebugLine(CurrentWorld, FirstPoint, SecondPoint, Color, false, Time, 10, Thickness);
+			DrawDebugLine(CurrentWorld, FirstPoint, SecondPoint, Color, false, Time, 0.f, Thickness);
 			SecondPoint = FirstPoint;
 		}
 	}

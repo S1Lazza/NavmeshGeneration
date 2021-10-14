@@ -12,6 +12,7 @@ class USolidHeightfield;
 class UOpenHeightfield;
 class UContour;
 class UPolygonMesh;
+class UDetailedMesh;
 class ANavMeshController;
 class ACustomNavigationData;
 
@@ -46,6 +47,9 @@ public:
 	//Create the polygons forming the navmesh using the contours data
 	void CreatePolygonMesh();
 
+	//Create a polygon mesh with detailed height information
+	void CreateDetailedMesh();
+
 	//Pass the polygon data from the generator to the navmesh
 	void SendDataToNavmesh();
 
@@ -57,6 +61,7 @@ public:
 	UOpenHeightfield* GetOpenHeightfield() const { return OpenHF; }
 	UContour* GetContour() const { return Contour; }
 	UPolygonMesh* GetPolygonMesh() const { return PolygonMesh; }
+	UDetailedMesh* GetDetailedMesh() const { return DetailedMesh; }
 
 private:
 	FBox NavBounds;
@@ -68,4 +73,5 @@ private:
 	UOpenHeightfield* OpenHF;
 	UContour* Contour;
 	UPolygonMesh* PolygonMesh;
+	UDetailedMesh* DetailedMesh;
 };
