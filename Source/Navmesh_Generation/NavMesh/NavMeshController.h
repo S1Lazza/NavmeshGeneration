@@ -152,6 +152,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|PolygonMesh", meta = (DisplayName = "EnablePolyCentroidDebug"))
 	bool EnablePolyCentroidDebug = false;
 
+	//Enable the debug visualization of the polygon centroids
+	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|PolygonMesh", meta = (DisplayName = "EnableNavmeshDebug"))
+	bool EnableNavmeshDebug = false;
+
 private:
 	TSharedPtr<FNavMeshGenerator, ESPMode::ThreadSafe> NavMeshGenerator;
 };

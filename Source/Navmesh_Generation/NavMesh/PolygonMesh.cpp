@@ -8,6 +8,7 @@
 #include "Engine/TextRenderActor.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "../Utility/UtilityGeneral.h"
+#include "../Utility/MeshDebug.h"
 #include "Components/TextRenderComponent.h"
 #include "Math/UnrealMathUtility.h"
 
@@ -116,6 +117,7 @@ void UPolygonMesh::GeneratePolygonMesh(const UContour* Contour, bool PerformRecu
 		}
 
 		//Utility functions to display the contours and the triangles created
+		FindTriangleData(ContoursData[ContourIndex].Vertices, TempTriangles, PolyCount);
 		/*DrawDebugPolyMeshTriangles(ContoursData[ContourIndex].Vertices, TempTriangles, PolyCount);*/
 
 		//Iterate through all the contour vertices
@@ -288,6 +290,24 @@ int UPolygonMesh::Triangulate(TArray<FVector>& Vertices, TArray<FTriangleData>& 
 
 	return Triangles.Num() / 3;
 
+}
+
+void UPolygonMesh::FindTriangleData(const TArray<FVector>& Vertices, const TArray<int>& Triangles, const int NumberOfTriangles)
+{
+	int LoopIndex = 0;
+	TriangleData.Empty();
+
+	while (LoopIndex < NumberOfTriangles)
+	{
+		for (int Index = LoopIndex * 3; Index < (3 + LoopIndex * 3); Index++)
+		{
+			int TriangleIndex = Triangles[Index];
+			TriangleData.Add(Vertices[TriangleIndex]);
+		}
+
+		TriangleIndexes.Add(LoopIndex);
+		LoopIndex++;
+	}
 }
 
 void UPolygonMesh::PerformPolygonMerging(TArray<TArray<int>>& PolysIndices, TArray<FVector>& Vertices, int& PolyTotalCount)
@@ -785,7 +805,22 @@ void UPolygonMesh::DrawPolygonCentroid()
 {
 	for (FPolygonData& Polygon : ResultingPoly)
 	{
-		DrawDebugSphere(CurrentWorld, Polygon.Centroid, 5.f, 5, FColor::Red, false, 30.f, 30.f, 2.f);
+		DrawDebugSphere(CurrentWorld, Polygon.Centroid, 5.f, 5, FColor::Red, false, 30.f, 0.f, 2.f);
 	}
+}
+
+void UPolygonMesh::DrawNavmeshExtension()
+{
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	FVector SpawnLocation = (TriangleData.Num() != 0) ? TriangleData[0] : FVector(0.f, 0.f, 0.f);
+
+	AProceduralMeshDebug* ProceduralMesh = CurrentWorld->SpawnActor<AProceduralMeshDebug>(SpawnLocation, FRotator(0.f, 0.f, 0.f), SpawnInfo);
+	TArray<FVector> Normals;
+	TArray<FVector2D> UVs;
+	TArray<FLinearColor> Colors;
+	TArray<FProcMeshTangent> Tangents;
+
+	ProceduralMesh->Mesh->CreateMeshSection_LinearColor(0, TriangleData, TriangleIndexes, Normals, UVs, Colors, Tangents, false);
 }
 

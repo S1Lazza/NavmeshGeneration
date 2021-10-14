@@ -98,6 +98,8 @@ public:
 	//Return the total number of triangles generate, negative number if the generation fails
 	int Triangulate(TArray<FVector>& Vertices, TArray<FTriangleData>& Indices, TArray<int>& Triangles);
 
+	void FindTriangleData(const TArray<FVector>& Vertices, const TArray<int>& Triangles, const int NumberOfTriangles);
+
 	//Merge the valid triangles into larger polygons, only executed if MaxVertexPOerPoly > 3
 	void PerformPolygonMerging(TArray<TArray<int>>& PolysIndices, TArray<FVector>& Vertices, int& PolyTotalCount);
 
@@ -169,6 +171,8 @@ public:
 	//Draw the centroid of the polygons froming the navmesh
 	void DrawPolygonCentroid();
 
+	void DrawNavmeshExtension();
+
 	const TArray<FPolygonData> GetResultingPoly() const { return ResultingPoly; };
 
 private:
@@ -177,6 +181,9 @@ private:
 	TArray<int> GlobalPolys;
 
 	TArray<FVector> GlobalVertices;
+
+	TArray<FVector> TriangleData;
+	TArray<int> TriangleIndexes;
 
 	TArray<FContourData> ContoursData;
 

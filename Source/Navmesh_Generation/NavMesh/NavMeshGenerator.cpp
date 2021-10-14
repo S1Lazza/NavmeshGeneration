@@ -115,11 +115,11 @@ void FNavMeshGenerator::GenerateNavmesh()
 	CreateOpenHeightfield();
 	CreateContour();
 	CreatePolygonMesh();
+	CreateDetailedMesh();
 
 	SendDataToNavmesh();
 }
 
-//TODO: Need to clean them before creating the new ones
 void FNavMeshGenerator::InitializeNavmeshObjects()
 {
 	//The objects are reinitialized every single time the navmesh is updated in editor for an easier cleanup of the intermediate data

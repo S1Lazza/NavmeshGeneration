@@ -77,6 +77,14 @@ void ANavMeshController::DeleteDebugPlanes()
 	{
 		Plane->Destroy();
 	}
+
+	TArray<AActor*> DebugProceduralMesh;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AProceduralMeshDebug::StaticClass(), DebugProceduralMesh);
+
+	for (AActor* Mesh : DebugProceduralMesh)
+	{
+		Mesh->Destroy();
+	}
 }
 
 void ANavMeshController::DeleteDebugText()
@@ -140,5 +148,10 @@ void ANavMeshController::DisplayDebugElements()
 	if (EnablePolyCentroidDebug)
 	{
 		NavMeshGenerator->GetPolygonMesh()->DrawPolygonCentroid();
+	}
+
+	if (EnableNavmeshDebug)
+	{
+		NavMeshGenerator->GetPolygonMesh()->DrawNavmeshExtension();
 	}
 }

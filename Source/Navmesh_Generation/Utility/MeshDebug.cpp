@@ -53,3 +53,12 @@ void AMeshDebug::SetMaterialColorOnDistance(const float DistanceToBorder, const 
 	DynamicMaterial->SetScalarParameterValue(TEXT("Blend"), ColorDifference);
 }
 
+AProceduralMeshDebug::AProceduralMeshDebug()
+{
+	PrimaryActorTick.bCanEverTick = false;
+
+	Mesh = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("ProceduralMesh"));
+	Mesh->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	Mesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+}
+

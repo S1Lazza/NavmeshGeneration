@@ -23,7 +23,7 @@ public:
 			return;
 		}
 
-		FPositionVertexBuffer* VertexBuffer = &Mesh->GetStaticMesh()->RenderData->LODResources[0].VertexBuffers.PositionVertexBuffer;
+		FPositionVertexBuffer* VertexBuffer = &Mesh->GetStaticMesh()->GetRenderData()->LODResources[0].VertexBuffers.PositionVertexBuffer;
 
 		//Iterate through all the vertices
 		int32 VertexCount = VertexBuffer->GetNumVertices();
@@ -48,7 +48,7 @@ public:
 			return;
 		}
 
-		FRawStaticIndexBuffer* IndexBuffers = &Mesh->GetStaticMesh()->RenderData->LODResources[0].IndexBuffer;
+		FRawStaticIndexBuffer* IndexBuffers = &Mesh->GetStaticMesh()->GetRenderData()->LODResources[0].IndexBuffer;
 
 		int32 IndexCount = IndexBuffers->GetNumIndices();
 		for (int32 I = 0; I < IndexCount; I++)

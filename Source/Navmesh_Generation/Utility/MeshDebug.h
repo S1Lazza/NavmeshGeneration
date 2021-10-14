@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/StaticMeshComponent.h"
+#include "ProceduralMeshComponent.h"
 #include "MeshDebug.generated.h"
 
 class UMaterialInstanceDynamic;
@@ -31,4 +32,14 @@ public:
 private:
 	UStaticMeshComponent* Mesh;
 	UMaterialInstanceDynamic* DynamicMaterial;
+};
+
+UCLASS()
+class NAVMESH_GENERATION_API AProceduralMeshDebug : public AActor
+{
+	GENERATED_BODY()
+
+public:
+	AProceduralMeshDebug();
+	UProceduralMeshComponent* Mesh;
 };
