@@ -149,9 +149,7 @@ void FNavMeshGenerator::CreateSolidHeightfield(const UStaticMeshComponent* Mesh)
 
 	SolidHF->VoxelizeTriangles(Vertices, Indices);
 	SolidHF->MarkLowHeightSpan();
-
-	//TODO: Currently the ledge spans are incorrectly filtered, need to check the method below
-	/*SolidHF->MarkLedgeSpan();*/
+	SolidHF->MarkLedgeSpan();
 }
 
 void FNavMeshGenerator::CreateOpenHeightfield()

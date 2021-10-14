@@ -562,21 +562,12 @@ void USolidHeightfield::MarkLowHeightSpan()
 			if (CurrentSpan->SpanAttribute == PolygonType::UNWALKABLE)
 			{
 				CurrentSpan = CurrentSpan->nextSpan;
-				break;
+				continue;
 			}
 
 			//Find the height distance between the current and next span, if less than the MinTraversableHeight flag the current span as unwalkable
 			int SpanFloor = CurrentSpan->Max;
-			int SpanCeiling;
-
-			if (CurrentSpan->nextSpan)
-			{
-				SpanCeiling = CurrentSpan->nextSpan->Min;
-			}
-			else
-			{
-				SpanCeiling = INT_MAX;
-			}
+			int SpanCeiling = (CurrentSpan->nextSpan) ? SpanCeiling = CurrentSpan->nextSpan->Min : SpanCeiling = INT_MAX;
 
 			if ((SpanCeiling - SpanFloor) * CellHeight <= MinTraversableHeight)
 			{
@@ -604,20 +595,11 @@ void USolidHeightfield::MarkLedgeSpan()
 			if (CurrentSpan->SpanAttribute == PolygonType::UNWALKABLE)
 			{
 				CurrentSpan = CurrentSpan->nextSpan;
-				break;
+				continue;
 			}
 
 			int CurrentFloor = CurrentSpan->Max;
-			int CurrentCeiling;
-
-			if (CurrentSpan->nextSpan)
-			{
-				CurrentCeiling = CurrentSpan->nextSpan->Min;
-			}
-			else
-			{
-				CurrentCeiling = INT_MAX;
-			}
+			int CurrentCeiling = (CurrentSpan->nextSpan) ? CurrentCeiling = CurrentSpan->nextSpan->Min : CurrentCeiling = INT_MAX;
 
 			//Minimum height distance from a neightbor span in unit 
 			int MinHeightToNeightbor = INT_MAX;
@@ -635,48 +617,42 @@ void USolidHeightfield::MarkLedgeSpan()
 				{
 					CurrentSpan->SpanAttribute = PolygonType::UNWALKABLE;
 					break;
+					/*MinHeightToNeightbor = FMath::Min(MinHeightToNeightbor, int((-MaxTraversableStep - CurrentFloor) * CellHeight));
+					continue;*/
 				}
 
 				UHeightSpan* NeightborSpan = *Spans.Find(NeightborIndex);
 
+				//Retrieve the data relative to the neightbor span (need also to take into account the area below the base span)
+				//Which is represented by the default value assigned below
+				int BaseNeightborFloor = -MaxTraversableStep;
+				int BaseNeightborCeiling = NeightborSpan->Min;
+
+				if ((FMath::Min(CurrentCeiling, BaseNeightborCeiling) - CurrentFloor) * CellHeight > MinTraversableHeight)
+				{
+					MinHeightToNeightbor = FMath::Min(MinHeightToNeightbor, (BaseNeightborFloor - CurrentFloor)) * CellHeight;
+				}
+
 				do
 				{
-					//Retrieve the data relative to the neightbor span (need also to take into account the area below the base span)
-					//Which is represented by the default value assigned below
-					int BaseNeightborFloor = -MaxTraversableStep;
-					int BaseNeightborCeiling = NeightborSpan->Min;
+					BaseNeightborFloor = NeightborSpan->Max;
+					BaseNeightborCeiling = (NeightborSpan->nextSpan) ? BaseNeightborCeiling = NeightborSpan->nextSpan->Min : BaseNeightborCeiling = INT_MAX;
 
-					if ((FMath::Min(CurrentCeiling, BaseNeightborCeiling) - CurrentFloor) * CellHeight > MinTraversableHeight)
+					if (((FMath::Min(CurrentCeiling, BaseNeightborCeiling) - FMath::Max(CurrentFloor, BaseNeightborFloor)) * CellHeight) > MinTraversableHeight)
 					{
 						MinHeightToNeightbor = FMath::Min(MinHeightToNeightbor, (BaseNeightborFloor - CurrentFloor)) * CellHeight;
-					}
-
-					int CurrentNeightborFloor = NeightborSpan->Max;
-					int CurrentNeightborCeiling;
-
-					if (NeightborSpan->nextSpan)
-					{
-						CurrentNeightborCeiling = NeightborSpan->nextSpan->Min;
-					}
-					else
-					{
-						CurrentNeightborCeiling = INT_MAX;
-					}
-
-					if ((FMath::Min(CurrentCeiling, CurrentNeightborCeiling) - FMath::Max(CurrentFloor, CurrentNeightborFloor) * CellHeight) > MinTraversableHeight)
-					{
-						MinHeightToNeightbor = FMath::Min(MinHeightToNeightbor, (CurrentNeightborFloor - CurrentFloor)) * CellHeight;
 					}
 
 					NeightborSpan = NeightborSpan->nextSpan;
 				} 
 				while (NeightborSpan);
-
-				if (MinHeightToNeightbor < -MaxTraversableStep)
-				{
-					CurrentSpan->SpanAttribute = PolygonType::UNWALKABLE;
-				}
 			}
+
+			if (MinHeightToNeightbor < -MaxTraversableStep)
+			{
+				CurrentSpan->SpanAttribute = PolygonType::UNWALKABLE;
+			}
+
 			CurrentSpan = CurrentSpan->nextSpan;
 		} 
 		while (CurrentSpan);
