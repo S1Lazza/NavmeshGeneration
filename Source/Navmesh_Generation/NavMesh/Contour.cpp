@@ -325,8 +325,8 @@ void UContour::ReinsertNullRegionVertices(TArray<FContourVertexData>& VerticesRa
 
 void UContour::CheckNullRegionMaxEdge(TArray<FContourVertexData>& VerticesRaw, TArray<FContourVertexData>& VerticesSimplified)
 {
-	//If the value to compare against is 0 or less there is no point in running the code
-	if (MaxEdgeLenght <= 0)
+	//If the value to compare against is lower than the current cell size return as it will cause an infinite loop
+	if (MaxEdgeLenght < CellSize)
 	{
 		return;
 	}

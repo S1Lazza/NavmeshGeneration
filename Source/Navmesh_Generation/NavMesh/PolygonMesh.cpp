@@ -785,7 +785,7 @@ void UPolygonMesh::DrawPolygonCentroid()
 {
 	for (FPolygonData& Polygon : ResultingPoly)
 	{
-		DrawDebugSphere(CurrentWorld, Polygon.Centroid, 5.f, 5, FColor::Red, false, 30.f, 30.f, 2.f);
+		DrawDebugSphere(CurrentWorld, Polygon.Centroid, 5.f, 5, FColor::Red, false, 30.f, 0.f, 2.f);
 	}
 }
 
