@@ -598,8 +598,8 @@ void USolidHeightfield::MarkLedgeSpan()
 				continue;
 			}
 
-			int CurrentFloor = CurrentSpan->Max;
-			int CurrentCeiling = (CurrentSpan->nextSpan) ? CurrentCeiling = CurrentSpan->nextSpan->Min : CurrentCeiling = INT_MAX;
+			int CurrentFloor = CurrentSpan->Max * CellHeight;
+			int CurrentCeiling = (CurrentSpan->nextSpan) ? CurrentCeiling = CurrentSpan->nextSpan->Min * CellHeight : CurrentCeiling = INT_MAX;
 
 			//Minimum height distance from a neightbor span in unit 
 			int MinHeightToNeightbor = INT_MAX;
@@ -615,10 +615,10 @@ void USolidHeightfield::MarkLedgeSpan()
 				//If one of the neightbor is not valid, the span considered is on a edge, therefore is not walkable
 				if (!Spans.Contains(NeightborIndex))
 				{
-					CurrentSpan->SpanAttribute = PolygonType::UNWALKABLE;
-					break;
-					/*MinHeightToNeightbor = FMath::Min(MinHeightToNeightbor, int((-MaxTraversableStep - CurrentFloor) * CellHeight));
-					continue;*/
+					/*CurrentSpan->SpanAttribute = PolygonType::UNWALKABLE;
+					break;*/
+					MinHeightToNeightbor = FMath::Min(MinHeightToNeightbor, int(-MaxTraversableStep - CurrentFloor));
+					continue;
 				}
 
 				UHeightSpan* NeightborSpan = *Spans.Find(NeightborIndex);
@@ -626,21 +626,21 @@ void USolidHeightfield::MarkLedgeSpan()
 				//Retrieve the data relative to the neightbor span (need also to take into account the area below the base span)
 				//Which is represented by the default value assigned below
 				int BaseNeightborFloor = -MaxTraversableStep;
-				int BaseNeightborCeiling = NeightborSpan->Min;
+				int BaseNeightborCeiling = NeightborSpan->Min * CellHeight;
 
-				if ((FMath::Min(CurrentCeiling, BaseNeightborCeiling) - CurrentFloor) * CellHeight > MinTraversableHeight)
+				if ((FMath::Min(CurrentCeiling, BaseNeightborCeiling) - CurrentFloor) > MinTraversableHeight)
 				{
-					MinHeightToNeightbor = FMath::Min(MinHeightToNeightbor, (BaseNeightborFloor - CurrentFloor)) * CellHeight;
+					MinHeightToNeightbor = FMath::Min(MinHeightToNeightbor, BaseNeightborFloor - CurrentFloor);
 				}
 
 				do
 				{
-					BaseNeightborFloor = NeightborSpan->Max;
-					BaseNeightborCeiling = (NeightborSpan->nextSpan) ? BaseNeightborCeiling = NeightborSpan->nextSpan->Min : BaseNeightborCeiling = INT_MAX;
+					BaseNeightborFloor = NeightborSpan->Max * CellHeight;
+					BaseNeightborCeiling = (NeightborSpan->nextSpan) ? BaseNeightborCeiling = NeightborSpan->nextSpan->Min * CellHeight : BaseNeightborCeiling = INT_MAX;
 
-					if (((FMath::Min(CurrentCeiling, BaseNeightborCeiling) - FMath::Max(CurrentFloor, BaseNeightborFloor)) * CellHeight) > MinTraversableHeight)
+					if (FMath::Min(CurrentCeiling, BaseNeightborCeiling) - FMath::Max(CurrentFloor, BaseNeightborFloor) > MinTraversableHeight)
 					{
-						MinHeightToNeightbor = FMath::Min(MinHeightToNeightbor, (BaseNeightborFloor - CurrentFloor)) * CellHeight;
+						MinHeightToNeightbor = FMath::Min(MinHeightToNeightbor, BaseNeightborFloor - CurrentFloor);
 					}
 
 					NeightborSpan = NeightborSpan->nextSpan;
