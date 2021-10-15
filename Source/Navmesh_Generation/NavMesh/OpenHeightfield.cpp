@@ -1064,8 +1064,8 @@ void UOpenHeightfield::DrawDebugSpanData()
 
 		do
 		{
-			FVector SpanMinCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width + Offset, BoundMin.Y + CellSize * CurrentSpan->Depth + Offset, BoundMin.Z + CellSize * CurrentSpan->Min);
-			FVector SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellSize * (CurrentSpan->Min));
+			FVector SpanMinCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width + Offset, BoundMin.Y + CellSize * CurrentSpan->Depth + Offset, BoundMin.Z + CellHeight * CurrentSpan->Min);
+			FVector SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellHeight * (CurrentSpan->Min));
 
 			UUtilityDebug::DrawMinMaxBox(CurrentWorld, SpanMinCoord, SpanMaxCoord, FColor::Blue, 60.0f, 1.5f);
 
