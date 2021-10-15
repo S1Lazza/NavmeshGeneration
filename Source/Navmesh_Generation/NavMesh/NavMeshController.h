@@ -69,7 +69,7 @@ public:
 	float CellSize = 30.f;
 
 	//Height of the single cells (voxels) in which the heightfiels is subdivided
-	/*UPROPERTY(EditAnywhere, Category = "NavmeshParameters|SolidHeightfield", meta = (DisplayName = "CellHeight"))*/
+	UPROPERTY(EditAnywhere, Category = "NavmeshParameters|SolidHeightfield", meta = (DisplayName = "CellHeight"))
 	float CellHeight = 30.f;
 
 	//Represent the maximum slope angle (in degree) that is considered traversable

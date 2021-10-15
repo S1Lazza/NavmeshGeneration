@@ -164,8 +164,8 @@ void USolidHeightfield::VoxelizeTriangles(const TArray<FVector>& Vertices, const
 				//Draw debug info relative to single valid cells
 				/*for (int It = HeightIndexMin; It <= HeightIndexMax; ++It)
 				{
-					FVector CellMinDebug = FVector(CellMinCoord.X, CellMinCoord.Y, BoundMin.Z + CellSize * It);
-					FVector CellMaxDebug = FVector(CellMaxCoord.X, CellMaxCoord.Y, BoundMin.Z + CellSize * It + CellSize);
+					FVector CellMinDebug = FVector(CellMinCoord.X, CellMinCoord.Y, BoundMin.Z + CellHeight * It);
+					FVector CellMaxDebug = FVector(CellMaxCoord.X, CellMaxCoord.Y, BoundMin.Z + CellHeight * It + CellHeight);
 
 					UUtilityDebug::DrawMinMaxBox(CurrentWorld, CellMinDebug, CellMaxDebug, FColor::Green, 20.0f, 0.5f);
 				}*/	
@@ -525,8 +525,8 @@ void USolidHeightfield::DrawDebugSpanData()
 
 				do {
 					//Retrieve the location value of every span based on the bounds and the width and depth coordinates
-					FVector SpanMinCoord = FVector(BoundMin.X + CellSize * j, BoundMin.Y + CellSize * i, BoundMin.Z + CellSize * Span->Min);
-					FVector SpanMaxCoord = FVector(SpanMinCoord.X + CellSize, SpanMinCoord.Y + CellSize, BoundMin.Z + CellSize * Span->Max);
+					FVector SpanMinCoord = FVector(BoundMin.X + CellSize * j, BoundMin.Y + CellSize * i, BoundMin.Z + CellHeight * Span->Min);
+					FVector SpanMaxCoord = FVector(SpanMinCoord.X + CellSize, SpanMinCoord.Y + CellSize, BoundMin.Z + CellHeight * Span->Max);
 					FColor SpanLineColor;
 
 					//Mark the spans with different colors based on their type

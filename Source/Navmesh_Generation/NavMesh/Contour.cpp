@@ -139,7 +139,7 @@ void UContour::BuildRawContours(UOpenSpan* Span, const int StartDir, bool& OnlyN
 			//Based on the span and field data retrieved the X, Y, Z position of the vertex
 			float PosX = BoundMin.X + CellSize * StartWidth;
 			float PosY = BoundMin.Y + (CellSize * StartDepth + CellSize);
-			float PosZ = BoundMin.Z + CellSize * GetCornerHeightIndex(CurrentSpan, Direction);
+			float PosZ = BoundMin.Z + CellHeight * GetCornerHeightIndex(CurrentSpan, Direction);
 
 			//Update the X and Y position based on the current direction
 			switch (Direction)

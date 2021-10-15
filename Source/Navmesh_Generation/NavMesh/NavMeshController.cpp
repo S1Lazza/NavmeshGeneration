@@ -38,12 +38,10 @@ void ANavMeshController::Tick(float DeltaTime)
 void ANavMeshController::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-	
-	//Temporary solution to prevent a bug
-	CellHeight = CellSize;
 
 	//No point in having the editor UI displaying an incorrect value as the related code would not be executed
-	//Not possible to do in the uproperty metadata as it accepts only a numeric value
+	//Not possible to do it in the uproperty metadata as it accepts only a numeric value
+	//By putting the code here, as soon as the cellsize value will be changed, the clamp will be updated as well
 	MaxEdgeLenght = FMath::Clamp(MaxEdgeLenght, CellSize, float(INT_MAX));
 
 	//TODO: Find a way to avoid rebuilding the navmesh every single time a debug option is checked/unchkeched

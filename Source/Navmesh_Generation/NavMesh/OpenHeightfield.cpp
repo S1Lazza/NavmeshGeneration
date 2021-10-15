@@ -1082,8 +1082,8 @@ void UOpenHeightfield::DrawSpanNeighbor(UOpenSpan* Span, const bool DebugNumbers
 	UOpenSpan* CurrentSpan = Span;
 
 	//Draw the current span
-	FVector SpanMinCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width + Offset, BoundMin.Y + CellSize * CurrentSpan->Depth + Offset, BoundMin.Z + CellSize * CurrentSpan->Min);
-	FVector SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellSize * (CurrentSpan->Min));
+	FVector SpanMinCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width + Offset, BoundMin.Y + CellSize * CurrentSpan->Depth + Offset, BoundMin.Z + CellHeight * CurrentSpan->Min);
+	FVector SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellHeight * (CurrentSpan->Min));
 	UUtilityDebug::DrawMinMaxBox(CurrentWorld, SpanMinCoord, SpanMaxCoord, FColor::Red, 20.0f, 0.5f);
 
 	FActorSpawnParameters SpawnInfo;
@@ -1100,14 +1100,14 @@ void UOpenHeightfield::DrawSpanNeighbor(UOpenSpan* Span, const bool DebugNumbers
 		}
 
 		//Update the data to draw the axis neighbor span
-		SpanMinCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + Offset, BoundMin.Y + CellSize * NeighborSpan->Depth + Offset, BoundMin.Z + CellSize * NeighborSpan->Min);
-		SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellSize * (NeighborSpan->Min));
+		SpanMinCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + Offset, BoundMin.Y + CellSize * NeighborSpan->Depth + Offset, BoundMin.Z + CellHeight * NeighborSpan->Min);
+		SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellHeight * (NeighborSpan->Min));
 		UUtilityDebug::DrawMinMaxBox(CurrentWorld, SpanMinCoord, SpanMaxCoord, FColor::Blue, 20.0f, 0.5f);
 
 		FVector SpanCenterCoord;
 		if (DebugNumbersVisible)
 		{
-			SpanCenterCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + CenterOffset, BoundMin.Y + CellSize * NeighborSpan->Depth + CenterOffset, BoundMin.Z + CellSize * NeighborSpan->Min + CenterOffset);
+			SpanCenterCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + CenterOffset, BoundMin.Y + CellSize * NeighborSpan->Depth + CenterOffset, BoundMin.Z + CellHeight * NeighborSpan->Min + CenterOffset);
 			ATextRenderActor* Text = CurrentWorld->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
 			Text->GetTextRender()->SetText(FString::FromInt(NeighborNumber));
 			Text->GetTextRender()->SetTextRenderColor(FColor::Red);
@@ -1124,13 +1124,13 @@ void UOpenHeightfield::DrawSpanNeighbor(UOpenSpan* Span, const bool DebugNumbers
 		}
 
 		//Update the data to draw the diagonal neighbor span
-		SpanMinCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + Offset, BoundMin.Y + CellSize * NeighborSpan->Depth + Offset, BoundMin.Z + CellSize * NeighborSpan->Min);
+		SpanMinCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + Offset, BoundMin.Y + CellSize * NeighborSpan->Depth + Offset, BoundMin.Z + CellHeight * NeighborSpan->Min);
 		SpanMaxCoord = FVector(SpanMinCoord.X + CellSize - Offset, SpanMinCoord.Y + CellSize - Offset, BoundMin.Z + CellSize * (NeighborSpan->Min));
 		UUtilityDebug::DrawMinMaxBox(CurrentWorld, SpanMinCoord, SpanMaxCoord, FColor::Blue, 20.0f, 0.5f);
 
 		if (DebugNumbersVisible)
 		{
-			SpanCenterCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + CenterOffset, BoundMin.Y + CellSize * NeighborSpan->Depth + CenterOffset, BoundMin.Z + CellSize * NeighborSpan->Min + CenterOffset);
+			SpanCenterCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + CenterOffset, BoundMin.Y + CellSize * NeighborSpan->Depth + CenterOffset, BoundMin.Z + CellHeight * NeighborSpan->Min + CenterOffset);
 			ATextRenderActor* Text2 = CurrentWorld->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
 			Text2->GetTextRender()->SetText(FString::FromInt(NeighborNumber));
 			Text2->GetTextRender()->SetTextRenderColor(FColor::Red);
@@ -1154,7 +1154,7 @@ void UOpenHeightfield::DrawDistanceFieldDebugData(const bool DebugNumbersVisible
 
 		do
 		{
-			FVector SpanCenterCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width + CenterOffset, BoundMin.Y + CellSize * CurrentSpan->Depth + CenterOffset, BoundMin.Z + CellSize * CurrentSpan->Min + CenterOffset);
+			FVector SpanCenterCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width + CenterOffset, BoundMin.Y + CellSize * CurrentSpan->Depth + CenterOffset, BoundMin.Z + CellHeight * CurrentSpan->Min + CenterOffset);
 			
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -1191,7 +1191,7 @@ void UOpenHeightfield::DrawDebugRegions(const bool DebugNumbersVisible, const bo
 
 		do
 		{
-			FVector SpanCenterCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width + CenterOffset, BoundMin.Y + CellSize * CurrentSpan->Depth + CenterOffset, BoundMin.Z + CellSize * CurrentSpan->Min + CenterOffset);
+			FVector SpanCenterCoord = FVector(BoundMin.X + CellSize * CurrentSpan->Width + CenterOffset, BoundMin.Y + CellSize * CurrentSpan->Depth + CenterOffset, BoundMin.Z + CellHeight * CurrentSpan->Min + CenterOffset);
 
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
