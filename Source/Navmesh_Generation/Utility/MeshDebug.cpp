@@ -25,7 +25,7 @@ AMeshDebug::AMeshDebug()
 		Mesh->SetStaticMesh(FoundMesh.Object);
 	}
 
-	static ConstructorHelpers::FObjectFinder<UMaterial> FoundMaterial(TEXT("/Game/Assets/Material/BaseColor"));
+	static ConstructorHelpers::FObjectFinder<UMaterial> FoundMaterial(TEXT("/Game/Assets/Material/M_BaseColor"));
 	if (FoundMaterial.Succeeded())
 	{
 		DynamicMaterial = UMaterialInstanceDynamic::Create(FoundMaterial.Object, NULL);
