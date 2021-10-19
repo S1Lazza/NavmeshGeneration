@@ -3,7 +3,7 @@
 
 #include "HeightSpan.h"
 
-UHeightSpan::UHeightSpan(const int MinHeight, const int MaxHeight, const TEnumAsByte<PolygonType>& Type)
+UHeightSpan::UHeightSpan(const int MinHeight, const int MaxHeight, const PolygonType& Type)
 	: Min(MinHeight),
 	  Max(MaxHeight),
 	  SpanAttribute(Type)

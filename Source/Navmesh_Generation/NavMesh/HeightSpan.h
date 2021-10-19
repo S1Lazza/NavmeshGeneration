@@ -22,7 +22,7 @@ public:
 	// Sets default values for this actor's properties
 	UHeightSpan() {};
 
-	UHeightSpan(const int MinHeight, const int MaxHeight, const TEnumAsByte<PolygonType>& Type);
+	UHeightSpan(const int MinHeight, const int MaxHeight, const PolygonType& Type);
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) {};
@@ -52,7 +52,7 @@ public:
 	UHeightSpan* nextSpan;
 
 	//Attribute of the span considered
-	TEnumAsByte<PolygonType> SpanAttribute;
+	PolygonType SpanAttribute;
 
 protected:
 	// Called when the game starts or when spawned

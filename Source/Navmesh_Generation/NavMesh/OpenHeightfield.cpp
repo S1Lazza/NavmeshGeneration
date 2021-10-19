@@ -1109,7 +1109,8 @@ void UOpenHeightfield::DrawSpanNeighbor(UOpenSpan* Span, const bool DebugNumbers
 		{
 			SpanCenterCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + CenterOffset, BoundMin.Y + CellSize * NeighborSpan->Depth + CenterOffset, BoundMin.Z + CellHeight * NeighborSpan->Min + CenterOffset);
 			ATextRenderActor* Text = CurrentWorld->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
-			Text->GetTextRender()->SetText(FString::FromInt(NeighborNumber));
+			FString TextToDisplay = FString::FromInt(NeighborNumber);
+			Text->GetTextRender()->SetText(FText::FromString(TextToDisplay));
 			Text->GetTextRender()->SetTextRenderColor(FColor::Red);
 		}
 
@@ -1132,7 +1133,8 @@ void UOpenHeightfield::DrawSpanNeighbor(UOpenSpan* Span, const bool DebugNumbers
 		{
 			SpanCenterCoord = FVector(BoundMin.X + CellSize * NeighborSpan->Width + CenterOffset, BoundMin.Y + CellSize * NeighborSpan->Depth + CenterOffset, BoundMin.Z + CellHeight * NeighborSpan->Min + CenterOffset);
 			ATextRenderActor* Text2 = CurrentWorld->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
-			Text2->GetTextRender()->SetText(FString::FromInt(NeighborNumber));
+			FString TextToDisplay = FString::FromInt(NeighborNumber);
+			Text2->GetTextRender()->SetText(FText::FromString(TextToDisplay));
 			Text2->GetTextRender()->SetTextRenderColor(FColor::Red);
 		}
 
@@ -1162,7 +1164,8 @@ void UOpenHeightfield::DrawDistanceFieldDebugData(const bool DebugNumbersVisible
 			if (DebugNumbersVisible)
 			{
 				ATextRenderActor* Text = CurrentWorld->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
-				Text->GetTextRender()->SetText(FString::FromInt(CurrentSpan->DistanceToBorder));
+				FString TextToDisplay = FString::FromInt(CurrentSpan->DistanceToBorder);
+				Text->GetTextRender()->SetText(FText::FromString(TextToDisplay));
 				Text->GetTextRender()->SetTextRenderColor(FColor::Red);
 			}
 
@@ -1199,7 +1202,8 @@ void UOpenHeightfield::DrawDebugRegions(const bool DebugNumbersVisible, const bo
 			if (DebugNumbersVisible)
 			{
 				ATextRenderActor* Text = CurrentWorld->SpawnActor<ATextRenderActor>(SpanCenterCoord, FRotator(0.f, 180.f, 0.f), SpawnInfo);
-				Text->GetTextRender()->SetText(FString::FromInt(CurrentSpan->RegionID));
+				FString TextToDisplay = FString::FromInt(CurrentSpan->RegionID);
+				Text->GetTextRender()->SetText(FText::FromString(TextToDisplay));
 				Text->GetTextRender()->SetTextRenderColor(FColor::Red);
 			}
 
